@@ -1,0 +1,45 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Logs
+*.log
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Android
+android-app/.gradle/
+android-app/local.properties
+android-app/**/build/
+android-app/build/
+android-app/.idea/
+android-app/captures/
+
+# Kotlin/Java
+*.class
+out/
+
+# Go
+backend/bin/
+backend/.cache/
+backend/coverage.out
+
+# Database / temp
+*.sqlite
+*.db
+
+# Node
+node_modules/
+
+# Misc
+tmp/
+temp/
+dist/
