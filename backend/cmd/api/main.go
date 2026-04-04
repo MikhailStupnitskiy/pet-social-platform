@@ -1,18 +1,36 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
 	"pet-social-platform/backend/internal/app/router"
+	"pet-social-platform/backend/internal/platform/config"
+	"pet-social-platform/backend/internal/platform/postgres"
 )
 
 func main() {
-	r := router.New()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
 
-	log.Println("starting server on :8080")
+	dbPool, err := postgres.NewPool(cfg.PostgresDSN)
+	if err != nil {
+		log.Fatalf("failed to connect to postgres: %v", err)
+	}
+	defer dbPool.Close()
 
-	if err := http.ListenAndServe(":8080", r); err != nil {
+	r := router.New(router.Dependencies{
+		DB: dbPool,
+	})
+
+	addr := fmt.Sprintf(":%s", cfg.HTTPPort)
+
+	log.Printf("starting server on %s in %s mode", addr, cfg.AppEnv)
+
+	if err := http.ListenAndServe(addr, r); err != nil {
 		log.Fatal(err)
 	}
 }

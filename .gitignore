@@ -43,3 +43,8 @@ node_modules/
 tmp/
 temp/
 dist/
+
+g
+# Go cache
+.gocache/
+.gomodcache/
