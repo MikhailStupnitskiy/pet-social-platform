@@ -12,5 +12,16 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  migrate:
+    image: migrate/migrate
+    profiles: ["tools"]
+    volumes:
+      - ./backend/migrations:/migrations
+    entrypoint: [
+      "migrate",
+      "-path=/migrations",
+      "-database=postgres://postgres:postgres@postgres:5432/pet_social_platform?sslmode=disable"
+    ]
+
 volumes:
   postgres_data:
