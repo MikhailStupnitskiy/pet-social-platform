@@ -5,8 +5,11 @@ import (
 	"net/http"
 	"time"
 
-	"pet-social-platform/backend/internal/app/middleware"
+	appmiddlewre "pet-social-platform/backend/internal/app/middleware"
 	"pet-social-platform/backend/internal/app/response"
+	authpostgres "pet-social-platform/backend/internal/modules/auth/repository/postgres"
+	authservice "pet-social-platform/backend/internal/modules/auth/service"
+	authhttp "pet-social-platform/backend/internal/modules/auth/transport/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -14,14 +17,15 @@ import (
 
 type Dependencies struct {
 	DB *pgxpool.Pool
+	JWTSecret string
 }
 
 func New(deps Dependencies) http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.RequestID())
-	r.Use(middleware.Recover())
-	r.Use(middleware.Logging())
+	r.Use(appmiddlewre.RequestID())
+	r.Use(appmiddlewre.Recover())
+	r.Use(appmiddlewre.Logging())
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		response.NotFound(w, "route not found")
@@ -30,6 +34,11 @@ func New(deps Dependencies) http.Handler {
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, http.StatusMethodNotAllowed, "method_not_allowed", "method not allowed")
 	})
+
+	authRepo := authpostgres.New(deps.DB)
+	jwtService := authservice.NewJWTService(deps.JWTSecret)
+	authSvc := authservice.New(authRepo, jwtService)
+	authHandler := authhttp.NewHandler(authSvc)
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		response.JSON(w, http.StatusOK, map[string]string{
@@ -50,6 +59,17 @@ func New(deps Dependencies) http.Handler {
 			"status": "ready",
 		})
 	})
+
+	r.Route("/v1/auth", func(r chi.Router) {
+		r.Post("/register", authHandler.Register)
+		r.Post("/login", authHandler.Login)
+
+		r.Group(func(r chi.Router) {
+			r.Use(authhttp.AuthMiddleware(authSvc))
+			r.Get("/me", authHandler.Me)
+		})
+	})
+
 
 	return r
 }

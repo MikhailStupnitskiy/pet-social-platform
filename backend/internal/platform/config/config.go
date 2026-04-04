@@ -11,6 +11,7 @@ type Config struct {
 	AppEnv      string
 	HTTPPort    string
 	PostgresDSN string
+	JWTSecret   string
 }
 
 func Load() (*Config, error) {
@@ -21,10 +22,15 @@ func Load() (*Config, error) {
 		AppEnv:      getEnv("APP_ENV", "local"),
 		HTTPPort:    getEnv("HTTP_PORT", "8080"),
 		PostgresDSN: os.Getenv("POSTGRES_DSN"),
+		JWTSecret:   os.Getenv("JWT_SECRET"),
 	}
 
 	if cfg.PostgresDSN == "" {
 		return nil, fmt.Errorf("POSTGRES_DSN is required")
+	}
+
+	if cfg.JWTSecret == "" {
+		return nil, fmt.Errorf("JWT_SECRET is required")
 	}
 
 	return cfg, nil

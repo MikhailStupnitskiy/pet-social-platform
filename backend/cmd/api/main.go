@@ -24,6 +24,7 @@ func main() {
 
 	r := router.New(router.Dependencies{
 		DB: dbPool,
+		JWTSecret: cfg.JWTSecret,
 	})
 
 	addr := fmt.Sprintf(":%s", cfg.HTTPPort)
