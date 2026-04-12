@@ -16,6 +16,10 @@ import (
 	usersservice "pet-social-platform/backend/internal/modules/users/service"
 	usershttp "pet-social-platform/backend/internal/modules/users/transport/http"
 
+	petspostgres "pet-social-platform/backend/internal/modules/pets/repository/postgres"
+	petsservice "pet-social-platform/backend/internal/modules/pets/service"
+	petshttp "pet-social-platform/backend/internal/modules/pets/transport/http"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -51,6 +55,11 @@ func New(deps Dependencies) http.Handler {
 	usersSvc := usersservice.New(usersRepo)
 	usersHandler := usershttp.NewHandler(usersSvc)
 
+	// pets init
+	petsRepo := petspostgres.New(deps.DB)
+	petsSvc := petsservice.New(petsRepo)
+	petsHandler := petshttp.NewHandler(petsSvc)
+
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		response.JSON(w, http.StatusOK, map[string]string{
 			"status": "ok",
@@ -81,13 +90,22 @@ func New(deps Dependencies) http.Handler {
 		})
 	})
 
-		r.Route("/v1/profile", func(r chi.Router) {
+	r.Route("/v1/profile", func(r chi.Router) {
 		r.Use(authhttp.AuthMiddleware(authSvc))
 
 		r.Get("/me", usersHandler.GetMe)
 		r.Patch("/me", usersHandler.PatchMe)
 	})
 
+	r.Route("/v1/pets", func(r chi.Router) {
+		r.Use(authhttp.AuthMiddleware(authSvc))
+
+		r.Get("/", petsHandler.List)
+		r.Post("/", petsHandler.Create)
+		r.Get("/{id}", petsHandler.GetByID)
+		r.Patch("/{id}", petsHandler.Patch)
+		r.Post("/{id}/set-active", petsHandler.SetActive)
+	})
 
 	return r
 }
