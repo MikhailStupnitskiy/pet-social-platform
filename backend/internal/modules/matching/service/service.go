@@ -6,12 +6,20 @@ import (
 	"pet-social-platform/backend/internal/modules/matching/domain"
 )
 
-type Service struct {
-	repo domain.Repository
+type ChatEnsurer interface {
+	EnsureChatForMatch(ctx context.Context, pet1ID string, pet2ID string) error
 }
 
-func New(repo domain.Repository) *Service {
-	return &Service{repo: repo}
+type Service struct {
+	repo         domain.Repository
+	chatEnsurer  ChatEnsurer
+}
+
+func New(repo domain.Repository, chatEnsurer ChatEnsurer) *Service {
+	return &Service{
+		repo:        repo,
+		chatEnsurer: chatEnsurer,
+	}
 }
 
 func (s *Service) GetRecommendations(ctx context.Context, sourcePetID string, ownerID string) ([]domain.Recommendation, error) {
@@ -60,6 +68,13 @@ func (s *Service) Swipe(ctx context.Context, sourcePetID string, targetPetID str
 		if err := s.repo.CreateMatchIfNotExists(ctx, sourcePetID, targetPetID); err != nil {
 			return false, err
 		}
+
+		if s.chatEnsurer != nil {
+			if err := s.chatEnsurer.EnsureChatForMatch(ctx, sourcePetID, targetPetID); err != nil {
+				return false, err
+			}
+		}
+
 		return true, nil
 	}
 

@@ -24,6 +24,10 @@ import (
 	matchingservice "pet-social-platform/backend/internal/modules/matching/service"
 	matchinghttp "pet-social-platform/backend/internal/modules/matching/transport/http"
 
+	chatspostgres "pet-social-platform/backend/internal/modules/chats/repository/postgres"
+	chatsservice "pet-social-platform/backend/internal/modules/chats/service"
+	chatshttp "pet-social-platform/backend/internal/modules/chats/transport/http"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -64,9 +68,14 @@ func New(deps Dependencies) http.Handler {
 	petsSvc := petsservice.New(petsRepo)
 	petsHandler := petshttp.NewHandler(petsSvc)
 
+	// chats init
+	chatsRepo := chatspostgres.New(deps.DB)
+	chatsSvc := chatsservice.New(chatsRepo)
+	chatsHandler := chatshttp.NewHandler(chatsSvc)
+
 	// matching init
 	matchingRepo := matchingpostgres.New(deps.DB)
-	matchingSvc := matchingservice.New(matchingRepo)
+	matchingSvc := matchingservice.New(matchingRepo, chatsSvc)
 	matchingHandler := matchinghttp.NewHandler(matchingSvc)
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -122,6 +131,14 @@ func New(deps Dependencies) http.Handler {
 		r.Get("/recommendations", matchingHandler.Recommendations)
 		r.Post("/swipes", matchingHandler.Swipe)
 		r.Get("/matches", matchingHandler.Matches)
+	})
+
+	r.Route("/v1/chats", func(r chi.Router) {
+		r.Use(authhttp.AuthMiddleware(authSvc))
+
+		r.Get("/", chatsHandler.ListChats)
+		r.Get("/{id}/messages", chatsHandler.ListMessages)
+		r.Post("/{id}/messages", chatsHandler.SendMessage)
 	})
 
 	return r
