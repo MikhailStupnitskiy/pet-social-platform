@@ -28,6 +28,10 @@ import (
 	chatsservice "pet-social-platform/backend/internal/modules/chats/service"
 	chatshttp "pet-social-platform/backend/internal/modules/chats/transport/http"
 
+	routinepostgres "pet-social-platform/backend/internal/modules/routine/repository/postgres"
+	routineservice "pet-social-platform/backend/internal/modules/routine/service"
+	routinehttp "pet-social-platform/backend/internal/modules/routine/transport/http"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -77,6 +81,11 @@ func New(deps Dependencies) http.Handler {
 	matchingRepo := matchingpostgres.New(deps.DB)
 	matchingSvc := matchingservice.New(matchingRepo, chatsSvc)
 	matchingHandler := matchinghttp.NewHandler(matchingSvc)
+
+	// routine init
+	routineRepo := routinepostgres.New(deps.DB)
+	routineSvc := routineservice.New(routineRepo)
+	routineHandler := routinehttp.NewHandler(routineSvc)
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		response.JSON(w, http.StatusOK, map[string]string{
@@ -139,6 +148,15 @@ func New(deps Dependencies) http.Handler {
 		r.Get("/", chatsHandler.ListChats)
 		r.Get("/{id}/messages", chatsHandler.ListMessages)
 		r.Post("/{id}/messages", chatsHandler.SendMessage)
+	})
+
+	r.Route("/v1/routine", func(r chi.Router) {
+		r.Use(authhttp.AuthMiddleware(authSvc))
+
+		r.Get("/", routineHandler.List)
+		r.Post("/", routineHandler.Create)
+		r.Patch("/{id}", routineHandler.Patch)
+		r.Post("/{id}/complete", routineHandler.Complete)
 	})
 
 	return r
