@@ -20,6 +20,10 @@ import (
 	petsservice "pet-social-platform/backend/internal/modules/pets/service"
 	petshttp "pet-social-platform/backend/internal/modules/pets/transport/http"
 
+	matchingpostgres "pet-social-platform/backend/internal/modules/matching/repository/postgres"
+	matchingservice "pet-social-platform/backend/internal/modules/matching/service"
+	matchinghttp "pet-social-platform/backend/internal/modules/matching/transport/http"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -59,6 +63,11 @@ func New(deps Dependencies) http.Handler {
 	petsRepo := petspostgres.New(deps.DB)
 	petsSvc := petsservice.New(petsRepo)
 	petsHandler := petshttp.NewHandler(petsSvc)
+
+	// matching init
+	matchingRepo := matchingpostgres.New(deps.DB)
+	matchingSvc := matchingservice.New(matchingRepo)
+	matchingHandler := matchinghttp.NewHandler(matchingSvc)
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		response.JSON(w, http.StatusOK, map[string]string{
@@ -105,6 +114,14 @@ func New(deps Dependencies) http.Handler {
 		r.Get("/{id}", petsHandler.GetByID)
 		r.Patch("/{id}", petsHandler.Patch)
 		r.Post("/{id}/set-active", petsHandler.SetActive)
+	})
+
+	r.Route("/v1/matching", func(r chi.Router) {
+		r.Use(authhttp.AuthMiddleware(authSvc))
+
+		r.Get("/recommendations", matchingHandler.Recommendations)
+		r.Post("/swipes", matchingHandler.Swipe)
+		r.Get("/matches", matchingHandler.Matches)
 	})
 
 	return r
