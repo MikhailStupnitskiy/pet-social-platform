@@ -12,6 +12,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import com.example.petsocial.core.network.api.PetsApi
+import com.example.petsocial.core.network.api.MatchingApi
 import javax.inject.Singleton
 
 @Module
@@ -65,5 +66,11 @@ object NetworkModule {
     @Singleton
     fun providePetsApi(retrofit: Retrofit): PetsApi {
         return retrofit.create(PetsApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideMatchingApi(retrofit: Retrofit): MatchingApi {
+        return retrofit.create(MatchingApi::class.java)
     }
 }

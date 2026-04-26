@@ -25,6 +25,7 @@ import androidx.compose.runtime.LaunchedEffect
 @Composable
 fun ProfileRoute(
     onPetsClick: () -> Unit,
+    onMatchingClick: () -> Unit,
     onLogoutClick: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ){
@@ -44,6 +45,7 @@ fun ProfileRoute(
         onSaveClick = viewModel::saveProfile,
         onRetryClick = viewModel::loadProfile,
         onPetsClick = onPetsClick,
+        onMatchingClick = onMatchingClick,
         onLogoutClick = onLogoutClick
     )
 }
@@ -59,6 +61,7 @@ private fun ProfileScreen(
     onSaveClick: () -> Unit,
     onRetryClick: () -> Unit,
     onPetsClick: () -> Unit,
+    onMatchingClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     when {
@@ -174,6 +177,15 @@ private fun ProfileScreen(
                 ) {
                     Text("Мои питомцы")
                 }
+
+                Button(
+                    onClick = onMatchingClick,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Matching")
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Spacer(modifier = Modifier.height(8.dp))
 

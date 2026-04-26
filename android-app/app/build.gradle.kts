@@ -55,6 +55,7 @@ dependencies {
     implementation(project(":feature-auth"))
     implementation(project(":feature-profile"))
     implementation(project(":feature-pets"))
+    implementation(project(":feature-matching"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
