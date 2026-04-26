@@ -52,6 +52,7 @@ dependencies {
     implementation(project(":core-datastore"))
     implementation(project(":core-auth"))
     implementation(project(":core-network"))
+    implementation(project(":feature-auth"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

@@ -1,4 +1,4 @@
-package com.example.petsocial.core.auth.auth
+package com.example.petsocial.core.auth.api
 
 import com.example.petsocial.core.auth.model.AuthResponse
 import com.example.petsocial.core.auth.model.LoginRequest
