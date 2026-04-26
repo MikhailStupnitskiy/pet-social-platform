@@ -41,6 +41,12 @@ class RegisterViewModel @Inject constructor(
         )
     }
 
+    fun onRegisterEventConsumed() {
+        _uiState.value = _uiState.value.copy(
+            isRegistered = false
+        )
+    }
+
     fun register() {
         val state = _uiState.value
 

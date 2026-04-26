@@ -2,6 +2,7 @@ package com.example.petsocial.core.network.di
 
 import com.example.petsocial.core.datastore.auth.TokenStorage
 import com.example.petsocial.core.network.interceptor.AuthInterceptor
+import com.example.petsocial.core.network.api.ProfileApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -10,6 +11,7 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
+import com.example.petsocial.core.network.api.PetsApi
 import javax.inject.Singleton
 
 @Module
@@ -49,5 +51,19 @@ object NetworkModule {
             .client(client)
             .addConverterFactory(MoshiConverterFactory.create())
             .build()
+    }
+
+
+    @Provides
+    @Singleton
+    fun provideProfileApi(retrofit: Retrofit): ProfileApi {
+        return retrofit.create(ProfileApi::class.java)
+    }
+
+
+    @Provides
+    @Singleton
+    fun providePetsApi(retrofit: Retrofit): PetsApi {
+        return retrofit.create(PetsApi::class.java)
     }
 }

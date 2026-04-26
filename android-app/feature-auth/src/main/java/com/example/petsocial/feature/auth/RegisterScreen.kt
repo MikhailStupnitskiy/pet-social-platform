@@ -34,6 +34,7 @@ fun RegisterRoute(
     LaunchedEffect(uiState.isRegistered) {
         if (uiState.isRegistered) {
             onRegisterSuccess()
+            viewModel.onRegisterEventConsumed()
         }
     }
 

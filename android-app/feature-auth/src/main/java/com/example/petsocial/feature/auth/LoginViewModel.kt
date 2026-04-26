@@ -34,6 +34,12 @@ class LoginViewModel @Inject constructor(
         )
     }
 
+    fun onLoginEventConsumed() {
+        _uiState.value = _uiState.value.copy(
+            isLoggedIn = false
+        )
+    }
+
     fun login() {
         val state = _uiState.value
 

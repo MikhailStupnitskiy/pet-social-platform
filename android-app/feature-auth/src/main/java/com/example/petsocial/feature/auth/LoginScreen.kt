@@ -34,6 +34,7 @@ fun LoginRoute(
     LaunchedEffect(uiState.isLoggedIn) {
         if (uiState.isLoggedIn) {
             onLoginSuccess()
+            viewModel.onLoginEventConsumed()
         }
     }
 
