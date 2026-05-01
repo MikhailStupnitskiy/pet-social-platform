@@ -21,13 +21,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import com.example.petsocial.feature.pets.PetsRoute
 import com.example.petsocial.feature.matching.MatchingRoute
+import com.example.petsocial.feature.chat.ChatsRoute
 
 import dagger.hilt.android.AndroidEntryPoint
 
 private enum class MainTab {
     Profile,
     Pets,
-    Matching
+    Matching,
+    Chats
 }
 
 @AndroidEntryPoint
@@ -69,6 +71,9 @@ class MainActivity : ComponentActivity() {
                                     onMatchingClick = {
                                         mainTab.value = MainTab.Matching
                                     },
+                                    onChatsClick = {
+                                        mainTab.value = MainTab.Chats
+                                    },
                                     onLogoutClick = {
                                         sessionViewModel.logout()
                                     }
@@ -85,6 +90,14 @@ class MainActivity : ComponentActivity() {
 
                             MainTab.Matching -> {
                                 MatchingRoute(
+                                    onBackClick = {
+                                        mainTab.value = MainTab.Profile
+                                    }
+                                )
+                            }
+
+                            MainTab.Chats -> {
+                                ChatsRoute(
                                     onBackClick = {
                                         mainTab.value = MainTab.Profile
                                     }

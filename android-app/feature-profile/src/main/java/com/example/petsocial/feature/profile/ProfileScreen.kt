@@ -26,6 +26,7 @@ import androidx.compose.runtime.LaunchedEffect
 fun ProfileRoute(
     onPetsClick: () -> Unit,
     onMatchingClick: () -> Unit,
+    onChatsClick: () -> Unit,
     onLogoutClick: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ){
@@ -46,6 +47,7 @@ fun ProfileRoute(
         onRetryClick = viewModel::loadProfile,
         onPetsClick = onPetsClick,
         onMatchingClick = onMatchingClick,
+        onChatsClick = onChatsClick,
         onLogoutClick = onLogoutClick
     )
 }
@@ -62,6 +64,7 @@ private fun ProfileScreen(
     onRetryClick: () -> Unit,
     onPetsClick: () -> Unit,
     onMatchingClick: () -> Unit,
+    onChatsClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     when {
@@ -184,6 +187,15 @@ private fun ProfileScreen(
                 ) {
                     Text("Matching")
                 }
+
+                Button(
+                    onClick = onChatsClick,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Чаты")
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Spacer(modifier = Modifier.height(8.dp))
 

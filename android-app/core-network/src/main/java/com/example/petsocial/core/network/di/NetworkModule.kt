@@ -13,6 +13,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import com.example.petsocial.core.network.api.PetsApi
 import com.example.petsocial.core.network.api.MatchingApi
+import com.example.petsocial.core.network.api.ChatsApi
 import javax.inject.Singleton
 
 @Module
@@ -72,5 +73,11 @@ object NetworkModule {
     @Singleton
     fun provideMatchingApi(retrofit: Retrofit): MatchingApi {
         return retrofit.create(MatchingApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideChatsApi(retrofit: Retrofit): ChatsApi {
+        return retrofit.create(ChatsApi::class.java)
     }
 }

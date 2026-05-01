@@ -1,0 +1,119 @@
+package com.example.petsocial.feature.chat
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import java.io.IOException
+import javax.inject.Inject
+
+@HiltViewModel
+class MessagesViewModel @Inject constructor(
+    private val repository: ChatRepository
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(MessagesUiState(isLoading = true))
+    val uiState: StateFlow<MessagesUiState> = _uiState.asStateFlow()
+
+    private var currentChatId: String? = null
+
+    fun loadMessages(chatId: String) {
+        currentChatId = chatId
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isLoading = true,
+                errorMessage = null
+            )
+
+            try {
+                val messages = repository.getMessages(chatId)
+
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    messages = messages
+                )
+            } catch (e: HttpException) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Ошибка сервера: ${e.code()}"
+                )
+            } catch (e: IOException) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Ошибка сети"
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Неизвестная ошибка"
+                )
+            }
+        }
+    }
+
+    fun onMessageTextChanged(value: String) {
+        _uiState.value = _uiState.value.copy(
+            messageText = value,
+            errorMessage = null
+        )
+    }
+
+    fun sendMessage() {
+        val chatId = currentChatId
+        val text = _uiState.value.messageText.trim()
+
+        if (chatId.isNullOrBlank()) {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "Чат не выбран"
+            )
+            return
+        }
+
+        if (text.isBlank()) {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "Введите сообщение"
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isSending = true,
+                errorMessage = null
+            )
+
+            try {
+                val newMessage = repository.sendMessage(
+                    chatId = chatId,
+                    body = text
+                )
+
+                _uiState.value = _uiState.value.copy(
+                    isSending = false,
+                    messageText = "",
+                    messages = _uiState.value.messages + newMessage
+                )
+            } catch (e: HttpException) {
+                _uiState.value = _uiState.value.copy(
+                    isSending = false,
+                    errorMessage = "Ошибка сервера: ${e.code()}"
+                )
+            } catch (e: IOException) {
+                _uiState.value = _uiState.value.copy(
+                    isSending = false,
+                    errorMessage = "Ошибка сети"
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isSending = false,
+                    errorMessage = "Неизвестная ошибка"
+                )
+            }
+        }
+    }
+}
