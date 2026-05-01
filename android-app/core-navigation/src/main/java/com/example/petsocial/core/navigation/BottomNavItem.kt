@@ -1,4 +1,4 @@
-package com.example.petsocial.navigation
+package com.example.petsocial.core.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Chat

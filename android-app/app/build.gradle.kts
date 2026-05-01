@@ -52,6 +52,8 @@ dependencies {
     implementation(project(":core-datastore"))
     implementation(project(":core-auth"))
     implementation(project(":core-network"))
+    implementation(project(":core-navigation"))
+
     implementation(project(":feature-auth"))
     implementation(project(":feature-profile"))
     implementation(project(":feature-pets"))

@@ -1,8 +1,9 @@
-package com.example.petsocial.navigation
+package com.example.petsocial.core.navigation
 
 object AppRoutes {
     const val Loading = "loading"
     const val Auth = "auth"
+
     const val Profile = "profile"
     const val Pets = "pets"
     const val Matching = "matching"
