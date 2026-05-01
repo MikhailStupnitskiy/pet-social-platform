@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import com.example.petsocial.feature.pets.PetsRoute
 import com.example.petsocial.feature.matching.MatchingRoute
 import com.example.petsocial.feature.chat.ChatsRoute
+import com.example.petsocial.feature.routine.RoutineRoute
 
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -29,7 +30,8 @@ private enum class MainTab {
     Profile,
     Pets,
     Matching,
-    Chats
+    Chats,
+    Routine
 }
 
 @AndroidEntryPoint
@@ -76,6 +78,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onLogoutClick = {
                                         sessionViewModel.logout()
+                                    },
+                                    onRoutineClick = {
+                                        mainTab.value = MainTab.Routine
                                     }
                                 )
                             }
@@ -98,6 +103,14 @@ class MainActivity : ComponentActivity() {
 
                             MainTab.Chats -> {
                                 ChatsRoute(
+                                    onBackClick = {
+                                        mainTab.value = MainTab.Profile
+                                    }
+                                )
+                            }
+
+                            MainTab.Routine -> {
+                                RoutineRoute(
                                     onBackClick = {
                                         mainTab.value = MainTab.Profile
                                     }

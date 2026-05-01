@@ -57,6 +57,7 @@ dependencies {
     implementation(project(":feature-pets"))
     implementation(project(":feature-matching"))
     implementation(project(":feature-chat"))
+    implementation(project(":feature-routine"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

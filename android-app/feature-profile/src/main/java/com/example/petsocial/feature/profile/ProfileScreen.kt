@@ -27,6 +27,7 @@ fun ProfileRoute(
     onPetsClick: () -> Unit,
     onMatchingClick: () -> Unit,
     onChatsClick: () -> Unit,
+    onRoutineClick: () -> Unit,
     onLogoutClick: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ){
@@ -48,6 +49,7 @@ fun ProfileRoute(
         onPetsClick = onPetsClick,
         onMatchingClick = onMatchingClick,
         onChatsClick = onChatsClick,
+        onRoutineClick = onRoutineClick,
         onLogoutClick = onLogoutClick
     )
 }
@@ -65,6 +67,7 @@ private fun ProfileScreen(
     onPetsClick: () -> Unit,
     onMatchingClick: () -> Unit,
     onChatsClick: () -> Unit,
+    onRoutineClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     when {
@@ -194,6 +197,15 @@ private fun ProfileScreen(
                 ) {
                     Text("Чаты")
                 }
+
+                Button(
+                    onClick = onRoutineClick,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Routine")
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Spacer(modifier = Modifier.height(8.dp))
 
