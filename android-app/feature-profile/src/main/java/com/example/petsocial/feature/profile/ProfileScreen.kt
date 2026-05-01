@@ -24,10 +24,6 @@ import androidx.compose.runtime.LaunchedEffect
 
 @Composable
 fun ProfileRoute(
-    onPetsClick: () -> Unit,
-    onMatchingClick: () -> Unit,
-    onChatsClick: () -> Unit,
-    onRoutineClick: () -> Unit,
     onLogoutClick: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ){
@@ -46,10 +42,6 @@ fun ProfileRoute(
         onAvatarUrlChanged = viewModel::onAvatarUrlChanged,
         onSaveClick = viewModel::saveProfile,
         onRetryClick = viewModel::loadProfile,
-        onPetsClick = onPetsClick,
-        onMatchingClick = onMatchingClick,
-        onChatsClick = onChatsClick,
-        onRoutineClick = onRoutineClick,
         onLogoutClick = onLogoutClick
     )
 }
@@ -64,10 +56,6 @@ private fun ProfileScreen(
     onAvatarUrlChanged: (String) -> Unit,
     onSaveClick: () -> Unit,
     onRetryClick: () -> Unit,
-    onPetsClick: () -> Unit,
-    onMatchingClick: () -> Unit,
-    onChatsClick: () -> Unit,
-    onRoutineClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     when {
@@ -176,34 +164,6 @@ private fun ProfileScreen(
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
-
-                Button(
-                    onClick = onPetsClick,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Мои питомцы")
-                }
-
-                Button(
-                    onClick = onMatchingClick,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Matching")
-                }
-
-                Button(
-                    onClick = onChatsClick,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Чаты")
-                }
-
-                Button(
-                    onClick = onRoutineClick,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Routine")
-                }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
