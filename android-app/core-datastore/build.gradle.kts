@@ -40,10 +40,11 @@ kotlin {
 }
 
 dependencies {
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    implementation("com.google.dagger:hilt-android:2.51")
-    kapt("com.google.dagger:hilt-compiler:2.51")
+    implementation(libs.androidx.datastore.preferences)
+
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
 }
