@@ -43,6 +43,7 @@ kotlin {
 dependencies {
     implementation(project(":core-network"))
     implementation(project(":core-ui"))
+    implementation(project(":core-designsystem"))
 
 
     implementation(libs.androidx.core.ktx)

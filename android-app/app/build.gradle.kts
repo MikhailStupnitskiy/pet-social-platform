@@ -54,6 +54,7 @@ dependencies {
     implementation(project(":core-network"))
     implementation(project(":core-navigation"))
     implementation(project(":core-ui"))
+    implementation(project(":core-designsystem"))
 
     implementation(project(":feature-auth"))
     implementation(project(":feature-profile"))

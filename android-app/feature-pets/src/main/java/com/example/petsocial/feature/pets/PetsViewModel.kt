@@ -16,7 +16,7 @@ class PetsViewModel @Inject constructor(
     private val repository: PetsRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(PetsUiState(isLoading = true))
+    private val _uiState = MutableStateFlow(PetsUiState())
     val uiState: StateFlow<PetsUiState> = _uiState.asStateFlow()
 
     fun loadPets() {
@@ -155,5 +155,15 @@ class PetsViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    fun loadPetsIfNeeded() {
+        val state = _uiState.value
+
+        if (state.pets.isNotEmpty() || state.isLoading) {
+            return
+        }
+
+        loadPets()
     }
 }

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -29,6 +28,7 @@ import com.example.petsocial.core.ui.FullScreenLoading
 import com.example.petsocial.core.ui.ScreenTitle
 import com.example.petsocial.core.ui.SectionTitle
 import com.example.petsocial.core.ui.SuccessMessage
+import com.example.petsocial.core.designsystem.component.PetSocialCard
 
 @Composable
 fun PetsRoute(
@@ -38,7 +38,7 @@ fun PetsRoute(
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(Unit) {
-        viewModel.loadPets()
+        viewModel.loadPetsIfNeeded()
     }
 
     PetsScreen(
@@ -216,11 +216,11 @@ private fun PetCard(
     pet: PetResponse,
     onSetActiveClick: () -> Unit
 ) {
-    Card(
+    PetSocialCard(
         modifier = Modifier.fillMaxWidth()
-    ) {
+    ) { contentModifier ->
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = contentModifier
         ) {
             Text(
                 text = pet.name,
