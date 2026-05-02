@@ -42,6 +42,13 @@ fun PetSocialAppRoot(
                     launchSingleTop = true
                 }
             }
+
+            is SessionUiState.Error -> {
+                navController.navigate(AppRoutes.SessionError) {
+                    popUpTo(0)
+                    launchSingleTop = true
+                }
+            }
         }
     }
 
@@ -51,6 +58,24 @@ fun PetSocialAppRoot(
     ) {
         composable(AppRoutes.Loading) {
             AppLoadingScreen()
+        }
+
+        composable(AppRoutes.SessionError) {
+            val state = sessionState
+
+            SessionErrorScreen(
+                message = if (state is SessionUiState.Error) {
+                    state.message
+                } else {
+                    "Неизвестная ошибка"
+                },
+                onRetryClick = {
+                    sessionViewModel.checkSession()
+                },
+                onLogoutClick = {
+                    sessionViewModel.logout()
+                }
+            )
         }
 
         authGraph(

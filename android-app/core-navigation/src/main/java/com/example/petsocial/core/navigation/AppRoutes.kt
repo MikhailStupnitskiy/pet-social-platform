@@ -2,6 +2,7 @@ package com.example.petsocial.core.navigation
 
 object AppRoutes {
     const val Loading = "loading"
+    const val SessionError = "session_error"
     const val Auth = "auth"
 
     const val Profile = "profile"
