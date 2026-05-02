@@ -2,6 +2,7 @@ package com.example.petsocial.feature.routine
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.petsocial.core.common.result.AppError
 import com.example.petsocial.core.network.api.PetsApi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,15 +12,26 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.example.petsocial.core.common.result.AppResult
 import com.example.petsocial.core.common.result.safeApiCall
+import com.example.petsocial.core.common.session.SessionEventBus
 
 @HiltViewModel
 class RoutineViewModel @Inject constructor(
     private val repository: RoutineRepository,
-    private val petsApi: PetsApi
+    private val petsApi: PetsApi,
+    private val sessionEventBus: SessionEventBus
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RoutineUiState(isLoading = true))
     val uiState: StateFlow<RoutineUiState> = _uiState.asStateFlow()
+
+    private fun handleUnauthorized(error: AppError): Boolean {
+        if (error is AppError.Unauthorized) {
+            sessionEventBus.notifyUnauthorized()
+            return true
+        }
+
+        return false
+    }
 
     fun load() {
         viewModelScope.launch {

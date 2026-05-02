@@ -29,9 +29,16 @@ import com.example.petsocial.core.ui.ScreenTitle
 @Composable
 fun ProfileRoute(
     onLogoutClick: () -> Unit,
+    onUnauthorized: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
-){
+) {
     val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(uiState.isUnauthorized) {
+        if (uiState.isUnauthorized) {
+            onUnauthorized()
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.loadProfile()

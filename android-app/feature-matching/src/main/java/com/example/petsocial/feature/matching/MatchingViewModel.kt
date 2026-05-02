@@ -2,26 +2,36 @@ package com.example.petsocial.feature.matching
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.petsocial.core.common.result.AppError
 import com.example.petsocial.core.network.api.PetsApi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
-import java.io.IOException
 import javax.inject.Inject
 import com.example.petsocial.core.common.result.AppResult
 import com.example.petsocial.core.common.result.safeApiCall
+import com.example.petsocial.core.common.session.SessionEventBus
 
 @HiltViewModel
 class MatchingViewModel @Inject constructor(
     private val repository: MatchingRepository,
-    private val petsApi: PetsApi
+    private val petsApi: PetsApi,
+    private val sessionEventBus: SessionEventBus
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MatchingUiState(isLoading = true))
     val uiState: StateFlow<MatchingUiState> = _uiState.asStateFlow()
+
+    private fun handleUnauthorized(error: AppError): Boolean {
+        if (error is AppError.Unauthorized) {
+            sessionEventBus.notifyUnauthorized()
+            return true
+        }
+
+        return false
+    }
 
     fun load() {
         viewModelScope.launch {
@@ -33,7 +43,11 @@ class MatchingViewModel @Inject constructor(
 
             when (val petsResult = safeApiCall { petsApi.getPets() }) {
                 is AppResult.Error -> {
-                    _uiState.value = _uiState.value.copy(
+                    if (handleUnauthorized(petsResult.error)) {
+                        return@launch
+                    }
+
+                    _uiState.value = MatchingUiState(
                         isLoading = false,
                         errorMessage = petsResult.error.message
                     )
@@ -132,8 +146,12 @@ class MatchingViewModel @Inject constructor(
 
             when (swipeResult) {
                 is AppResult.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isActionLoading = false,
+                    if (handleUnauthorized(swipeResult.error)) {
+                        return@launch
+                    }
+
+                    _uiState.value = MatchingUiState(
+                        isLoading = false,
                         errorMessage = swipeResult.error.message
                     )
                 }
@@ -148,9 +166,12 @@ class MatchingViewModel @Inject constructor(
 
                     when (matchesResult) {
                         is AppResult.Error -> {
-                            _uiState.value = _uiState.value.copy(
-                                isActionLoading = false,
-                                recommendations = updatedRecommendations,
+                            if (handleUnauthorized(matchesResult.error)) {
+                                return@launch
+                            }
+
+                            _uiState.value = MatchingUiState(
+                                isLoading = false,
                                 errorMessage = matchesResult.error.message
                             )
                         }

@@ -11,13 +11,27 @@ import androidx.navigation.compose.rememberNavController
 import com.example.petsocial.SessionUiState
 import com.example.petsocial.SessionViewModel
 import com.example.petsocial.core.navigation.AppRoutes
+import com.example.petsocial.SessionEventsViewModel
+import com.example.petsocial.core.common.session.SessionEvent
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun PetSocialAppRoot(
-    sessionViewModel: SessionViewModel = hiltViewModel()
+    sessionViewModel: SessionViewModel = hiltViewModel(),
+    sessionEventsViewModel: SessionEventsViewModel = hiltViewModel()
 ) {
     val navController = rememberNavController()
     val sessionState by sessionViewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        sessionEventsViewModel.sessionEventBus.events.collectLatest { event ->
+            when (event) {
+                SessionEvent.Unauthorized -> {
+                    sessionViewModel.logout()
+                }
+            }
+        }
+    }
 
     LaunchedEffect(sessionState) {
         when (sessionState) {

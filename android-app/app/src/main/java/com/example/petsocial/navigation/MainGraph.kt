@@ -97,7 +97,8 @@ private fun MainScaffold(
             when (currentRoute) {
                 AppRoutes.Profile -> {
                     ProfileRoute(
-                        onLogoutClick = onLogoutClick
+                        onLogoutClick = onLogoutClick,
+                        onUnauthorized = onLogoutClick
                     )
                 }
 

@@ -5,6 +5,7 @@ data class ProfileUiState(
     val isSaving: Boolean = false,
     val errorMessage: String? = null,
     val successMessage: String? = null,
+    val isUnauthorized: Boolean = false,
 
     val userId: String = "",
     val email: String = "",

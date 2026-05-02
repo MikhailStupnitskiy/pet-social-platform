@@ -10,10 +10,13 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.example.petsocial.core.common.result.AppResult
 import com.example.petsocial.core.common.result.safeApiCall
+import com.example.petsocial.core.common.result.AppError
+import com.example.petsocial.core.common.session.SessionEventBus
 
 @HiltViewModel
 class PetsViewModel @Inject constructor(
-    private val repository: PetsRepository
+    private val repository: PetsRepository,
+    private val sessionEventBus: SessionEventBus
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PetsUiState())
@@ -36,6 +39,10 @@ class PetsViewModel @Inject constructor(
                 }
 
                 is AppResult.Error -> {
+                    if (handleUnauthorized(result.error)) {
+                        return@launch
+                    }
+
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         errorMessage = result.error.message
@@ -43,6 +50,15 @@ class PetsViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private fun handleUnauthorized(error: AppError): Boolean {
+        if (error is AppError.Unauthorized) {
+            sessionEventBus.notifyUnauthorized()
+            return true
+        }
+
+        return false
     }
 
     fun onNameChanged(value: String) {
@@ -123,8 +139,12 @@ class PetsViewModel @Inject constructor(
                 }
 
                 is AppResult.Error -> {
+                    if (handleUnauthorized(result.error)) {
+                        return@launch
+                    }
+
                     _uiState.value = _uiState.value.copy(
-                        isCreating = false,
+                        isLoading = false,
                         errorMessage = result.error.message
                     )
                 }
@@ -140,7 +160,12 @@ class PetsViewModel @Inject constructor(
                 }
 
                 is AppResult.Error -> {
+                    if (handleUnauthorized(result.error)) {
+                        return@launch
+                    }
+
                     _uiState.value = _uiState.value.copy(
+                        isLoading = false,
                         errorMessage = result.error.message
                     )
                 }

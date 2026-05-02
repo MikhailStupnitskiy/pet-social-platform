@@ -10,14 +10,26 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.example.petsocial.core.common.result.AppResult
 import com.example.petsocial.core.common.result.safeApiCall
+import com.example.petsocial.core.common.result.AppError
+import com.example.petsocial.core.common.session.SessionEventBus
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    private val repository: ProfileRepository
+    private val repository: ProfileRepository,
+    private val sessionEventBus: SessionEventBus
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState(isLoading = true))
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
+
+    private fun handleUnauthorized(error: AppError): Boolean {
+        if (error is AppError.Unauthorized) {
+            sessionEventBus.notifyUnauthorized()
+            return true
+        }
+
+        return false
+    }
 
     fun loadProfile() {
         viewModelScope.launch {
@@ -42,6 +54,10 @@ class ProfileViewModel @Inject constructor(
                 }
 
                 is AppResult.Error -> {
+                    if (handleUnauthorized(result.error)) {
+                        return@launch
+                    }
+
                     _uiState.value = ProfileUiState(
                         isLoading = false,
                         errorMessage = result.error.message
@@ -114,8 +130,12 @@ class ProfileViewModel @Inject constructor(
                 }
 
                 is AppResult.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isSaving = false,
+                    if (handleUnauthorized(result.error)) {
+                        return@launch
+                    }
+
+                    _uiState.value = ProfileUiState(
+                        isLoading = false,
                         errorMessage = result.error.message
                     )
                 }
