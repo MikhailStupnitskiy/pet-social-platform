@@ -11,6 +11,8 @@ import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
 import javax.inject.Inject
+import com.example.petsocial.core.common.result.AppResult
+import com.example.petsocial.core.common.result.safeApiCall
 
 @HiltViewModel
 class MatchingViewModel @Inject constructor(
@@ -29,45 +31,59 @@ class MatchingViewModel @Inject constructor(
                 successMessage = null
             )
 
-            try {
-                val pets = petsApi.getPets()
-                val activePet = pets.firstOrNull { it.is_active }
-
-                if (activePet == null) {
+            when (val petsResult = safeApiCall { petsApi.getPets() }) {
+                is AppResult.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        activePet = null,
-                        recommendations = emptyList(),
-                        matches = emptyList(),
-                        errorMessage = "Сначала выберите активного питомца"
+                        errorMessage = petsResult.error.message
                     )
-                    return@launch
                 }
 
-                val recommendations = repository.getRecommendations(activePet.id)
-                val matches = repository.getMatches(activePet.id)
+                is AppResult.Success -> {
+                    val activePet = petsResult.data.firstOrNull { it.is_active }
 
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    activePet = activePet,
-                    recommendations = recommendations,
-                    matches = matches
-                )
-            } catch (e: HttpException) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Ошибка сервера: ${e.code()}"
-                )
-            } catch (e: IOException) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Ошибка сети"
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Неизвестная ошибка"
-                )
+                    if (activePet == null) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            activePet = null,
+                            recommendations = emptyList(),
+                            matches = emptyList(),
+                            errorMessage = "Сначала выберите активного питомца"
+                        )
+                        return@launch
+                    }
+
+                    val recommendationsResult = safeApiCall {
+                        repository.getRecommendations(activePet.id)
+                    }
+
+                    val matchesResult = safeApiCall {
+                        repository.getMatches(activePet.id)
+                    }
+
+                    if (recommendationsResult is AppResult.Error) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = recommendationsResult.error.message
+                        )
+                        return@launch
+                    }
+
+                    if (matchesResult is AppResult.Error) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = matchesResult.error.message
+                        )
+                        return@launch
+                    }
+
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        activePet = activePet,
+                        recommendations = (recommendationsResult as AppResult.Success).data,
+                        matches = (matchesResult as AppResult.Success).data
+                    )
+                }
             }
         }
     }
@@ -85,6 +101,7 @@ class MatchingViewModel @Inject constructor(
         action: SwipeAction
     ) {
         val activePet = _uiState.value.activePet
+
         if (activePet == null) {
             _uiState.value = _uiState.value.copy(
                 errorMessage = "Активный питомец не выбран"
@@ -99,8 +116,8 @@ class MatchingViewModel @Inject constructor(
                 successMessage = null
             )
 
-            try {
-                val response = when (action) {
+            val swipeResult = safeApiCall {
+                when (action) {
                     SwipeAction.Like -> repository.like(
                         sourcePetId = activePet.id,
                         targetPetId = targetPetId
@@ -111,40 +128,50 @@ class MatchingViewModel @Inject constructor(
                         targetPetId = targetPetId
                     )
                 }
+            }
 
-                val updatedRecommendations = _uiState.value.recommendations
-                    .filterNot { it.id == targetPetId }
+            when (swipeResult) {
+                is AppResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isActionLoading = false,
+                        errorMessage = swipeResult.error.message
+                    )
+                }
 
-                val updatedMatches = repository.getMatches(activePet.id)
+                is AppResult.Success -> {
+                    val updatedRecommendations = _uiState.value.recommendations
+                        .filterNot { it.id == targetPetId }
 
-                _uiState.value = _uiState.value.copy(
-                    isActionLoading = false,
-                    recommendations = updatedRecommendations,
-                    matches = updatedMatches,
-                    successMessage = if (response.is_match) {
-                        "У вас новый match!"
-                    } else {
-                        when (action) {
-                            SwipeAction.Like -> "Лайк отправлен"
-                            SwipeAction.Pass -> "Анкета пропущена"
+                    val matchesResult = safeApiCall {
+                        repository.getMatches(activePet.id)
+                    }
+
+                    when (matchesResult) {
+                        is AppResult.Error -> {
+                            _uiState.value = _uiState.value.copy(
+                                isActionLoading = false,
+                                recommendations = updatedRecommendations,
+                                errorMessage = matchesResult.error.message
+                            )
+                        }
+
+                        is AppResult.Success -> {
+                            _uiState.value = _uiState.value.copy(
+                                isActionLoading = false,
+                                recommendations = updatedRecommendations,
+                                matches = matchesResult.data,
+                                successMessage = if (swipeResult.data.is_match) {
+                                    "У вас новый match!"
+                                } else {
+                                    when (action) {
+                                        SwipeAction.Like -> "Лайк отправлен"
+                                        SwipeAction.Pass -> "Анкета пропущена"
+                                    }
+                                }
+                            )
                         }
                     }
-                )
-            } catch (e: HttpException) {
-                _uiState.value = _uiState.value.copy(
-                    isActionLoading = false,
-                    errorMessage = "Ошибка сервера: ${e.code()}"
-                )
-            } catch (e: IOException) {
-                _uiState.value = _uiState.value.copy(
-                    isActionLoading = false,
-                    errorMessage = "Ошибка сети"
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isActionLoading = false,
-                    errorMessage = "Неизвестная ошибка"
-                )
+                }
             }
         }
     }

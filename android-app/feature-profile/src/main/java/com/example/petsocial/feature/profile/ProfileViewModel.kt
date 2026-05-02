@@ -7,9 +7,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
-import java.io.IOException
 import javax.inject.Inject
+import com.example.petsocial.core.common.result.AppResult
+import com.example.petsocial.core.common.result.safeApiCall
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
@@ -25,37 +25,28 @@ class ProfileViewModel @Inject constructor(
                 isLoading = true
             )
 
-            try {
-                val profile = repository.getMe()
+            when (val result = safeApiCall { repository.getMe() }) {
+                is AppResult.Success -> {
+                    val profile = result.data
 
-                _uiState.value = ProfileUiState(
-                    isLoading = false,
-                    userId = profile.user_id,
-                    email = profile.email,
-                    name = profile.name,
-                    birthDate = profile.birth_date.orEmpty(),
-                    city = profile.city.orEmpty(),
-                    bio = profile.bio.orEmpty(),
-                    avatarUrl = profile.avatar_url.orEmpty()
-                )
-            } catch (e: HttpException) {
-                _uiState.value = ProfileUiState(
-                    isLoading = false,
-                    errorMessage = when (e.code()) {
-                        401 -> "Сессия истекла. Войдите снова"
-                        else -> "Ошибка сервера: ${e.code()}"
-                    }
-                )
-            } catch (e: IOException) {
-                _uiState.value = ProfileUiState(
-                    isLoading = false,
-                    errorMessage = "Ошибка сети"
-                )
-            } catch (e: Exception) {
-                _uiState.value = ProfileUiState(
-                    isLoading = false,
-                    errorMessage = "Неизвестная ошибка"
-                )
+                    _uiState.value = ProfileUiState(
+                        isLoading = false,
+                        userId = profile.user_id,
+                        email = profile.email,
+                        name = profile.name,
+                        birthDate = profile.birth_date.orEmpty(),
+                        city = profile.city.orEmpty(),
+                        bio = profile.bio.orEmpty(),
+                        avatarUrl = profile.avatar_url.orEmpty()
+                    )
+                }
+
+                is AppResult.Error -> {
+                    _uiState.value = ProfileUiState(
+                        isLoading = false,
+                        errorMessage = result.error.message
+                    )
+                }
             }
         }
     }
@@ -95,52 +86,39 @@ class ProfileViewModel @Inject constructor(
                 successMessage = null
             )
 
-            try {
-                val updated = repository.updateMe(
-                    name = state.name.trim(),
-                    birthDate = state.birthDate.trim().ifBlank { null },
-                    city = state.city.trim().ifBlank { null },
-                    bio = state.bio.trim().ifBlank { null },
-                    avatarUrl = state.avatarUrl.trim().ifBlank { null }
-                )
+            when (
+                val result = safeApiCall {
+                    repository.updateMe(
+                        name = state.name.trim(),
+                        birthDate = state.birthDate.trim().ifBlank { null },
+                        city = state.city.trim().ifBlank { null },
+                        bio = state.bio.trim().ifBlank { null },
+                        avatarUrl = state.avatarUrl.trim().ifBlank { null }
+                    )
+                }
+            ) {
+                is AppResult.Success -> {
+                    val updated = result.data
 
-                _uiState.value = _uiState.value.copy(
-                    isSaving = false,
-                    userId = updated.user_id,
-                    email = updated.email,
-                    name = updated.name,
-                    birthDate = updated.birth_date.orEmpty(),
-                    city = updated.city.orEmpty(),
-                    bio = updated.bio.orEmpty(),
-                    avatarUrl = updated.avatar_url.orEmpty(),
-                    successMessage = "Профиль сохранён"
-                )
-            } catch (e: HttpException) {
-                _uiState.value = _uiState.value.copy(
-                    isSaving = false,
-                    errorMessage = "Ошибка сервера: ${e.code()}"
-                )
-            } catch (e: IOException) {
-                _uiState.value = _uiState.value.copy(
-                    isSaving = false,
-                    errorMessage = "Ошибка сети"
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isSaving = false,
-                    errorMessage = "Неизвестная ошибка"
-                )
-            } catch (e: HttpException) {
-                val message = when (e.code()) {
-                    401 -> "Сессия истекла. Войдите снова"
-                    else -> "Ошибка сервера: ${e.code()}"
+                    _uiState.value = _uiState.value.copy(
+                        isSaving = false,
+                        userId = updated.user_id,
+                        email = updated.email,
+                        name = updated.name,
+                        birthDate = updated.birth_date.orEmpty(),
+                        city = updated.city.orEmpty(),
+                        bio = updated.bio.orEmpty(),
+                        avatarUrl = updated.avatar_url.orEmpty(),
+                        successMessage = "Профиль сохранён"
+                    )
                 }
 
-                _uiState.value = _uiState.value.copy(
-                    isSaving = false,
-                    isLoading = false,
-                    errorMessage = message
-                )
+                is AppResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isSaving = false,
+                        errorMessage = result.error.message
+                    )
+                }
             }
         }
     }

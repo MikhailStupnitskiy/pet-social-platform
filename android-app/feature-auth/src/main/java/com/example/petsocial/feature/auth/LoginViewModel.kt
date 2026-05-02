@@ -8,9 +8,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
-import java.io.IOException
 import javax.inject.Inject
+import com.example.petsocial.core.common.result.AppResult
+import com.example.petsocial.core.common.result.AppError
+import com.example.petsocial.core.common.result.safeApiCall
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
@@ -59,37 +60,33 @@ class LoginViewModel @Inject constructor(
                 errorMessage = null
             )
 
-            try {
-                authRepository.login(
-                    email = state.email.trim(),
-                    password = state.password
-                )
-
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    isLoggedIn = true
-                )
-            } catch (e: HttpException) {
-                val message = when (e.code()) {
-                    401 -> "Неверный email или пароль"
-                    400 -> "Некорректные данные"
-                    else -> "Ошибка сервера: ${e.code()}"
+            when (
+                val result = safeApiCall {
+                    authRepository.login(
+                        email = state.email.trim(),
+                        password = state.password
+                    )
+                }
+            ) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        isLoggedIn = true
+                    )
                 }
 
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = message
-                )
-            } catch (e: IOException) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Ошибка сети"
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Неизвестная ошибка"
-                )
+                is AppResult.Error -> {
+                    val message = when (result.error) {
+                        is AppError.Unauthorized -> "Неверный email или пароль"
+                        is AppError.BadRequest -> "Некорректные данные"
+                        else -> result.error.message
+                    }
+
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = message
+                    )
+                }
             }
         }
     }

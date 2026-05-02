@@ -8,9 +8,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
-import java.io.IOException
 import javax.inject.Inject
+import com.example.petsocial.core.common.result.AppResult
+import com.example.petsocial.core.common.result.safeApiCall
 
 @HiltViewModel
 class ChatsViewModel @Inject constructor(
@@ -27,28 +27,20 @@ class ChatsViewModel @Inject constructor(
                 errorMessage = null
             )
 
-            try {
-                val chats = repository.getChats()
+            when (val result = safeApiCall { repository.getChats() }) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        chats = result.data
+                    )
+                }
 
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    chats = chats
-                )
-            } catch (e: HttpException) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Ошибка сервера: ${e.code()}"
-                )
-            } catch (e: IOException) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Ошибка сети"
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Неизвестная ошибка"
-                )
+                is AppResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = result.error.message
+                    )
+                }
             }
         }
     }

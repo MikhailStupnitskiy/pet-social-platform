@@ -8,9 +8,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
-import java.io.IOException
 import javax.inject.Inject
+import com.example.petsocial.core.common.result.AppResult
+import com.example.petsocial.core.common.result.safeApiCall
 
 @HiltViewModel
 class RoutineViewModel @Inject constructor(
@@ -29,42 +29,45 @@ class RoutineViewModel @Inject constructor(
                 successMessage = null
             )
 
-            try {
-                val pets = petsApi.getPets()
-                val activePet = pets.firstOrNull { it.is_active }
-
-                if (activePet == null) {
+            when (val petsResult = safeApiCall { petsApi.getPets() }) {
+                is AppResult.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        activePet = null,
-                        items = emptyList(),
-                        errorMessage = "Сначала выберите активного питомца"
+                        errorMessage = petsResult.error.message
                     )
-                    return@launch
                 }
 
-                val items = repository.getRoutine(activePet.id)
+                is AppResult.Success -> {
+                    val activePet = petsResult.data.firstOrNull { it.is_active }
 
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    activePet = activePet,
-                    items = items
-                )
-            } catch (e: HttpException) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Ошибка сервера: ${e.code()}"
-                )
-            } catch (e: IOException) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Ошибка сети"
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Неизвестная ошибка"
-                )
+                    if (activePet == null) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            activePet = null,
+                            items = emptyList(),
+                            errorMessage = "Сначала выберите активного питомца"
+                        )
+                        return@launch
+                    }
+
+                    when (val routineResult = safeApiCall { repository.getRoutine(activePet.id) }) {
+                        is AppResult.Success -> {
+                            _uiState.value = _uiState.value.copy(
+                                isLoading = false,
+                                activePet = activePet,
+                                items = routineResult.data
+                            )
+                        }
+
+                        is AppResult.Error -> {
+                            _uiState.value = _uiState.value.copy(
+                                isLoading = false,
+                                activePet = activePet,
+                                errorMessage = routineResult.error.message
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -127,40 +130,36 @@ class RoutineViewModel @Inject constructor(
                 successMessage = null
             )
 
-            try {
-                repository.createRoutineItem(
-                    petId = activePet.id,
-                    title = state.title.trim(),
-                    category = state.category.trim(),
-                    scheduleTime = state.scheduleTime.trim().ifBlank { null },
-                    notes = state.notes.trim().ifBlank { null }
-                )
+            when (
+                val result = safeApiCall {
+                    repository.createRoutineItem(
+                        petId = activePet.id,
+                        title = state.title.trim(),
+                        category = state.category.trim(),
+                        scheduleTime = state.scheduleTime.trim().ifBlank { null },
+                        notes = state.notes.trim().ifBlank { null }
+                    )
+                }
+            ) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        isCreating = false,
+                        title = "",
+                        category = "",
+                        scheduleTime = "",
+                        notes = "",
+                        successMessage = "Задача создана"
+                    )
 
-                _uiState.value = _uiState.value.copy(
-                    isCreating = false,
-                    title = "",
-                    category = "",
-                    scheduleTime = "",
-                    notes = "",
-                    successMessage = "Задача создана"
-                )
+                    load()
+                }
 
-                load()
-            } catch (e: HttpException) {
-                _uiState.value = _uiState.value.copy(
-                    isCreating = false,
-                    errorMessage = "Ошибка сервера: ${e.code()}"
-                )
-            } catch (e: IOException) {
-                _uiState.value = _uiState.value.copy(
-                    isCreating = false,
-                    errorMessage = "Ошибка сети"
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isCreating = false,
-                    errorMessage = "Неизвестная ошибка"
-                )
+                is AppResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isCreating = false,
+                        errorMessage = result.error.message
+                    )
+                }
             }
         }
     }
@@ -173,28 +172,20 @@ class RoutineViewModel @Inject constructor(
                 successMessage = null
             )
 
-            try {
-                repository.completeRoutineItem(id)
+            when (val result = safeApiCall { repository.completeRoutineItem(id) }) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        isCompleting = false,
+                        successMessage = "Задача выполнена"
+                    )
+                }
 
-                _uiState.value = _uiState.value.copy(
-                    isCompleting = false,
-                    successMessage = "Задача выполнена"
-                )
-            } catch (e: HttpException) {
-                _uiState.value = _uiState.value.copy(
-                    isCompleting = false,
-                    errorMessage = "Ошибка сервера: ${e.code()}"
-                )
-            } catch (e: IOException) {
-                _uiState.value = _uiState.value.copy(
-                    isCompleting = false,
-                    errorMessage = "Ошибка сети"
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isCompleting = false,
-                    errorMessage = "Неизвестная ошибка"
-                )
+                is AppResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isCompleting = false,
+                        errorMessage = result.error.message
+                    )
+                }
             }
         }
     }

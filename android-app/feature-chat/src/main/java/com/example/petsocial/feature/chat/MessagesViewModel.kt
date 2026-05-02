@@ -10,6 +10,8 @@ import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
 import javax.inject.Inject
+import com.example.petsocial.core.common.result.AppResult
+import com.example.petsocial.core.common.result.safeApiCall
 
 @HiltViewModel
 class MessagesViewModel @Inject constructor(
@@ -30,28 +32,20 @@ class MessagesViewModel @Inject constructor(
                 errorMessage = null
             )
 
-            try {
-                val messages = repository.getMessages(chatId)
+            when (val result = safeApiCall { repository.getMessages(chatId) }) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        messages = result.data
+                    )
+                }
 
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    messages = messages
-                )
-            } catch (e: HttpException) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Ошибка сервера: ${e.code()}"
-                )
-            } catch (e: IOException) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Ошибка сети"
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Неизвестная ошибка"
-                )
+                is AppResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = result.error.message
+                    )
+                }
             }
         }
     }
@@ -87,32 +81,28 @@ class MessagesViewModel @Inject constructor(
                 errorMessage = null
             )
 
-            try {
-                val newMessage = repository.sendMessage(
-                    chatId = chatId,
-                    body = text
-                )
+            when (
+                val result = safeApiCall {
+                    repository.sendMessage(
+                        chatId = chatId,
+                        body = text
+                    )
+                }
+            ) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        isSending = false,
+                        messageText = "",
+                        messages = _uiState.value.messages + result.data
+                    )
+                }
 
-                _uiState.value = _uiState.value.copy(
-                    isSending = false,
-                    messageText = "",
-                    messages = _uiState.value.messages + newMessage
-                )
-            } catch (e: HttpException) {
-                _uiState.value = _uiState.value.copy(
-                    isSending = false,
-                    errorMessage = "Ошибка сервера: ${e.code()}"
-                )
-            } catch (e: IOException) {
-                _uiState.value = _uiState.value.copy(
-                    isSending = false,
-                    errorMessage = "Ошибка сети"
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isSending = false,
-                    errorMessage = "Неизвестная ошибка"
-                )
+                is AppResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isSending = false,
+                        errorMessage = result.error.message
+                    )
+                }
             }
         }
     }

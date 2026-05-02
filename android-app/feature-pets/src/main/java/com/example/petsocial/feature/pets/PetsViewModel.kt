@@ -7,9 +7,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
-import java.io.IOException
 import javax.inject.Inject
+import com.example.petsocial.core.common.result.AppResult
+import com.example.petsocial.core.common.result.safeApiCall
 
 @HiltViewModel
 class PetsViewModel @Inject constructor(
@@ -27,28 +27,20 @@ class PetsViewModel @Inject constructor(
                 successMessage = null
             )
 
-            try {
-                val pets = repository.getPets()
+            when (val result = safeApiCall { repository.getPets() }) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        pets = result.data
+                    )
+                }
 
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    pets = pets
-                )
-            } catch (e: HttpException) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Ошибка сервера: ${e.code()}"
-                )
-            } catch (e: IOException) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Ошибка сети"
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Неизвестная ошибка"
-                )
+                is AppResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = result.error.message
+                    )
+                }
             }
         }
     }
@@ -101,7 +93,7 @@ class PetsViewModel @Inject constructor(
                 successMessage = null
             )
 
-            try {
+            val result = safeApiCall {
                 repository.createPet(
                     name = state.name.trim(),
                     species = state.species.trim(),
@@ -111,48 +103,47 @@ class PetsViewModel @Inject constructor(
                     weightKg = state.weightKg.trim().ifBlank { null },
                     bio = state.bio.trim().ifBlank { null }
                 )
+            }
 
-                _uiState.value = _uiState.value.copy(
-                    isCreating = false,
-                    name = "",
-                    species = "",
-                    breed = "",
-                    sex = "",
-                    birthDate = "",
-                    weightKg = "",
-                    bio = "",
-                    successMessage = "Питомец создан"
-                )
+            when (result) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        isCreating = false,
+                        name = "",
+                        species = "",
+                        breed = "",
+                        sex = "",
+                        birthDate = "",
+                        weightKg = "",
+                        bio = "",
+                        successMessage = "Питомец создан"
+                    )
 
-                loadPets()
-            } catch (e: HttpException) {
-                _uiState.value = _uiState.value.copy(
-                    isCreating = false,
-                    errorMessage = "Ошибка сервера: ${e.code()}"
-                )
-            } catch (e: IOException) {
-                _uiState.value = _uiState.value.copy(
-                    isCreating = false,
-                    errorMessage = "Ошибка сети"
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isCreating = false,
-                    errorMessage = "Неизвестная ошибка"
-                )
+                    loadPets()
+                }
+
+                is AppResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isCreating = false,
+                        errorMessage = result.error.message
+                    )
+                }
             }
         }
     }
 
     fun setActivePet(id: String) {
         viewModelScope.launch {
-            try {
-                repository.setActivePet(id)
-                loadPets()
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    errorMessage = "Не удалось выбрать активного питомца"
-                )
+            when (val result = safeApiCall { repository.setActivePet(id) }) {
+                is AppResult.Success -> {
+                    loadPets()
+                }
+
+                is AppResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = result.error.message
+                    )
+                }
             }
         }
     }
