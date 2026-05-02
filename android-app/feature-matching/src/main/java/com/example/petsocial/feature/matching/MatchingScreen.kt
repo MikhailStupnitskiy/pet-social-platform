@@ -12,16 +12,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -30,13 +27,11 @@ import com.example.petsocial.core.network.model.matching.RecommendationResponse
 import com.example.petsocial.core.network.model.pets.PetResponse
 import com.example.petsocial.core.ui.ErrorMessage
 import com.example.petsocial.core.ui.FullScreenLoading
-import com.example.petsocial.core.ui.ScreenTitle
 import com.example.petsocial.core.ui.SectionTitle
 import com.example.petsocial.core.ui.SuccessMessage
 
 @Composable
 fun MatchingRoute(
-    onBackClick: () -> Unit,
     viewModel: MatchingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -49,8 +44,7 @@ fun MatchingRoute(
         uiState = uiState,
         onLikeClick = viewModel::like,
         onPassClick = viewModel::pass,
-        onRetryClick = viewModel::load,
-        onBackClick = onBackClick
+        onRetryClick = viewModel::load
     )
 }
 
@@ -59,8 +53,7 @@ private fun MatchingScreen(
     uiState: MatchingUiState,
     onLikeClick: (String) -> Unit,
     onPassClick: (String) -> Unit,
-    onRetryClick: () -> Unit,
-    onBackClick: () -> Unit
+    onRetryClick: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -69,13 +62,7 @@ private fun MatchingScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            ScreenTitle("Matching")
-
             Spacer(modifier = Modifier.height(8.dp))
-
-            TextButton(onClick = onBackClick) {
-                Text("Назад к профилю")
-            }
         }
 
         if (uiState.isLoading) {

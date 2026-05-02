@@ -23,6 +23,7 @@ import com.example.petsocial.feature.matching.MatchingRoute
 import com.example.petsocial.feature.pets.PetsRoute
 import com.example.petsocial.feature.profile.ProfileRoute
 import com.example.petsocial.feature.routine.RoutineRoute
+import com.example.petsocial.core.ui.PetSocialTopBar
 
 fun NavGraphBuilder.mainGraph(
     navController: NavHostController,
@@ -69,16 +70,27 @@ private fun MainScaffold(
     navController: NavHostController,
     onLogoutClick: () -> Unit
 ) {
+    val currentRoute = navController.currentBackStackEntryAsState()
+        .value
+        ?.destination
+        ?.route
+
+    val title = when (currentRoute) {
+        AppRoutes.Profile -> "Профиль"
+        AppRoutes.Pets -> "Питомцы"
+        AppRoutes.Matching -> "Matching"
+        AppRoutes.Chats -> "Чаты"
+        AppRoutes.Routine -> "Routine"
+        else -> "PetSocial"
+    }
     Scaffold(
+        topBar = {
+            PetSocialTopBar(title = title)
+        },
         bottomBar = {
             PetSocialBottomBar(navController = navController)
         }
     ) { innerPadding ->
-        val currentRoute = navController.currentBackStackEntryAsState()
-            .value
-            ?.destination
-            ?.route
-
         Column(
             modifier = Modifier.padding(innerPadding)
         ) {
@@ -90,43 +102,19 @@ private fun MainScaffold(
                 }
 
                 AppRoutes.Pets -> {
-                    PetsRoute(
-                        onBackClick = {
-                            navController.navigate(AppRoutes.Profile) {
-                                launchSingleTop = true
-                            }
-                        }
-                    )
+                    PetsRoute()
                 }
 
                 AppRoutes.Matching -> {
-                    MatchingRoute(
-                        onBackClick = {
-                            navController.navigate(AppRoutes.Profile) {
-                                launchSingleTop = true
-                            }
-                        }
-                    )
+                    MatchingRoute()
                 }
 
                 AppRoutes.Chats -> {
-                    ChatsRoute(
-                        onBackClick = {
-                            navController.navigate(AppRoutes.Profile) {
-                                launchSingleTop = true
-                            }
-                        }
-                    )
+                    ChatsRoute()
                 }
 
                 AppRoutes.Routine -> {
-                    RoutineRoute(
-                        onBackClick = {
-                            navController.navigate(AppRoutes.Profile) {
-                                launchSingleTop = true
-                            }
-                        }
-                    )
+                    RoutineRoute()
                 }
             }
         }

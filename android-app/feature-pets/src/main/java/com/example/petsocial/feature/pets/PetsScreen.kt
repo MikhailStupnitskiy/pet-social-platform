@@ -14,7 +14,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -25,16 +24,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.petsocial.core.network.model.pets.PetResponse
 import com.example.petsocial.core.ui.ErrorMessage
 import com.example.petsocial.core.ui.FullScreenLoading
-import com.example.petsocial.core.ui.ScreenTitle
 import com.example.petsocial.core.ui.SectionTitle
 import com.example.petsocial.core.ui.SuccessMessage
 import com.example.petsocial.core.designsystem.component.PetSocialCard
 
 @Composable
 fun PetsRoute(
-    onBackClick: () -> Unit,
     viewModel: PetsViewModel = hiltViewModel()
-) {
+){
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(Unit) {
@@ -51,8 +48,7 @@ fun PetsRoute(
         onWeightKgChanged = viewModel::onWeightKgChanged,
         onBioChanged = viewModel::onBioChanged,
         onCreateClick = viewModel::createPet,
-        onSetActiveClick = viewModel::setActivePet,
-        onBackClick = onBackClick
+        onSetActiveClick = viewModel::setActivePet
     )
 }
 
@@ -67,8 +63,7 @@ private fun PetsScreen(
     onWeightKgChanged: (String) -> Unit,
     onBioChanged: (String) -> Unit,
     onCreateClick: () -> Unit,
-    onSetActiveClick: (String) -> Unit,
-    onBackClick: () -> Unit
+    onSetActiveClick: (String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -77,13 +72,7 @@ private fun PetsScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            ScreenTitle("Питомцы")
-
             Spacer(modifier = Modifier.height(8.dp))
-
-            TextButton(onClick = onBackClick) {
-                Text("Назад к профилю")
-            }
         }
 
         if (uiState.isLoading) {

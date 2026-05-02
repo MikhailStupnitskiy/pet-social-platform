@@ -32,12 +32,9 @@ import com.example.petsocial.core.network.model.chat.MessageResponse
 import com.example.petsocial.core.ui.ErrorMessage
 import com.example.petsocial.core.ui.FullScreenLoading
 import com.example.petsocial.core.ui.ScreenTitle
-import com.example.petsocial.core.ui.SectionTitle
-import com.example.petsocial.core.ui.SuccessMessage
 
 @Composable
 fun ChatsRoute(
-    onBackClick: () -> Unit,
     chatsViewModel: ChatsViewModel = hiltViewModel(),
     messagesViewModel: MessagesViewModel = hiltViewModel()
 ) {
@@ -57,8 +54,7 @@ fun ChatsRoute(
             onChatClick = { chat ->
                 selectedChatId.value = chat.id
             },
-            onRetryClick = chatsViewModel::loadChats,
-            onBackClick = onBackClick
+            onRetryClick = chatsViewModel::loadChats
         )
     } else {
         val messagesUiState by messagesViewModel.uiState.collectAsState()
@@ -85,8 +81,7 @@ fun ChatsRoute(
 private fun ChatsListScreen(
     uiState: ChatsUiState,
     onChatClick: (ChatResponse) -> Unit,
-    onRetryClick: () -> Unit,
-    onBackClick: () -> Unit
+    onRetryClick: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -95,13 +90,7 @@ private fun ChatsListScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            ScreenTitle("Чаты")
-
             Spacer(modifier = Modifier.height(8.dp))
-
-            TextButton(onClick = onBackClick) {
-                Text("Назад к профилю")
-            }
         }
 
         if (uiState.isLoading) {

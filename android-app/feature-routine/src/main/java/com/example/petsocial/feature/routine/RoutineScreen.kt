@@ -15,25 +15,19 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.petsocial.core.network.model.routine.RoutineItemResponse
-import com.example.petsocial.core.ui.ErrorMessage
 import com.example.petsocial.core.ui.FullScreenLoading
-import com.example.petsocial.core.ui.ScreenTitle
 import com.example.petsocial.core.ui.SectionTitle
-import com.example.petsocial.core.ui.SuccessMessage
 
 @Composable
 fun RoutineRoute(
-    onBackClick: () -> Unit,
     viewModel: RoutineViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -50,8 +44,7 @@ fun RoutineRoute(
         onNotesChanged = viewModel::onNotesChanged,
         onCreateClick = viewModel::createRoutineItem,
         onCompleteClick = viewModel::completeRoutineItem,
-        onRetryClick = viewModel::load,
-        onBackClick = onBackClick
+        onRetryClick = viewModel::load
     )
 }
 
@@ -64,8 +57,7 @@ private fun RoutineScreen(
     onNotesChanged: (String) -> Unit,
     onCreateClick: () -> Unit,
     onCompleteClick: (String) -> Unit,
-    onRetryClick: () -> Unit,
-    onBackClick: () -> Unit
+    onRetryClick: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -74,13 +66,7 @@ private fun RoutineScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            ScreenTitle("Routine")
-
             Spacer(modifier = Modifier.height(8.dp))
-
-            TextButton(onClick = onBackClick) {
-                Text("Назад к профилю")
-            }
         }
 
         if (uiState.isLoading) {
