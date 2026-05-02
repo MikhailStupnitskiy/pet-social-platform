@@ -28,6 +28,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.petsocial.core.network.model.matching.MatchResponse
 import com.example.petsocial.core.network.model.matching.RecommendationResponse
 import com.example.petsocial.core.network.model.pets.PetResponse
+import com.example.petsocial.core.ui.ErrorMessage
+import com.example.petsocial.core.ui.FullScreenLoading
+import com.example.petsocial.core.ui.ScreenTitle
+import com.example.petsocial.core.ui.SectionTitle
+import com.example.petsocial.core.ui.SuccessMessage
 
 @Composable
 fun MatchingRoute(
@@ -64,10 +69,7 @@ private fun MatchingScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text(
-                text = "Matching",
-                style = MaterialTheme.typography.headlineMedium
-            )
+            ScreenTitle("Matching")
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -78,14 +80,7 @@ private fun MatchingScreen(
 
         if (uiState.isLoading) {
             item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CircularProgressIndicator()
-                }
+                FullScreenLoading()
             }
             return@LazyColumn
         }
@@ -98,10 +93,7 @@ private fun MatchingScreen(
 
         if (uiState.errorMessage != null) {
             item {
-                Text(
-                    text = uiState.errorMessage,
-                    color = MaterialTheme.colorScheme.error
-                )
+                ErrorMessage(message = uiState.errorMessage)
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -113,18 +105,12 @@ private fun MatchingScreen(
 
         if (uiState.successMessage != null) {
             item {
-                Text(
-                    text = uiState.successMessage,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                SuccessMessage(message = uiState.successMessage)
             }
         }
 
         item {
-            Text(
-                text = "Рекомендации",
-                style = MaterialTheme.typography.titleLarge
-            )
+            SectionTitle("Рекомендации")
         }
 
         if (uiState.recommendations.isEmpty()) {
@@ -149,10 +135,7 @@ private fun MatchingScreen(
         item {
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = "Matches",
-                style = MaterialTheme.typography.titleLarge
-            )
+            SectionTitle("Matches")
         }
 
         if (uiState.matches.isEmpty()) {

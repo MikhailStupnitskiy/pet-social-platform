@@ -29,6 +29,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.petsocial.core.network.model.chat.ChatResponse
 import com.example.petsocial.core.network.model.chat.MessageResponse
+import com.example.petsocial.core.ui.ErrorMessage
+import com.example.petsocial.core.ui.FullScreenLoading
+import com.example.petsocial.core.ui.ScreenTitle
+import com.example.petsocial.core.ui.SectionTitle
+import com.example.petsocial.core.ui.SuccessMessage
 
 @Composable
 fun ChatsRoute(
@@ -90,10 +95,7 @@ private fun ChatsListScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text(
-                text = "Чаты",
-                style = MaterialTheme.typography.headlineMedium
-            )
+            ScreenTitle("Чаты")
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -104,24 +106,14 @@ private fun ChatsListScreen(
 
         if (uiState.isLoading) {
             item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CircularProgressIndicator()
-                }
+                FullScreenLoading()
             }
             return@LazyColumn
         }
 
         if (uiState.errorMessage != null) {
             item {
-                Text(
-                    text = uiState.errorMessage,
-                    color = MaterialTheme.colorScheme.error
-                )
+                ErrorMessage(message = uiState.errorMessage)
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -160,10 +152,7 @@ private fun ChatCard(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            Text(
-                text = "Чат",
-                style = MaterialTheme.typography.titleMedium
-            )
+            ScreenTitle("Чат")
 
             Text("ID: ${chat.id}")
             Text("Match: ${chat.match_id}")
@@ -187,10 +176,7 @@ private fun MessagesScreen(
             .fillMaxSize()
             .padding(24.dp)
     ) {
-        Text(
-            text = "Чат",
-            style = MaterialTheme.typography.headlineMedium
-        )
+        ScreenTitle("Чат")
 
         Text(
             text = chatId,
@@ -220,10 +206,7 @@ private fun MessagesScreen(
             ) {
                 if (uiState.errorMessage != null) {
                     item {
-                        Text(
-                            text = uiState.errorMessage,
-                            color = MaterialTheme.colorScheme.error
-                        )
+                        ErrorMessage(message = uiState.errorMessage)
                     }
                 }
 

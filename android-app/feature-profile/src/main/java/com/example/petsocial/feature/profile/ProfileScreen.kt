@@ -21,6 +21,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.LaunchedEffect
+import com.example.petsocial.core.ui.FullScreenLoading
+import com.example.petsocial.core.ui.ErrorMessage
+import com.example.petsocial.core.ui.SuccessMessage
+import com.example.petsocial.core.ui.ScreenTitle
 
 @Composable
 fun ProfileRoute(
@@ -60,13 +64,7 @@ private fun ProfileScreen(
 ) {
     when {
         uiState.isLoading -> {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                CircularProgressIndicator()
-            }
+            FullScreenLoading()
         }
 
         else -> {
@@ -76,10 +74,7 @@ private fun ProfileScreen(
                     .padding(24.dp),
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(
-                    text = "Профиль",
-                    style = MaterialTheme.typography.headlineMedium
-                )
+                ScreenTitle("Профиль")
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -144,10 +139,7 @@ private fun ProfileScreen(
 
                 if (uiState.errorMessage != null) {
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = uiState.errorMessage,
-                        color = MaterialTheme.colorScheme.error
-                    )
+                    ErrorMessage(message = uiState.errorMessage)
 
                     Spacer(modifier = Modifier.height(8.dp))
                     TextButton(onClick = onRetryClick) {
@@ -157,10 +149,7 @@ private fun ProfileScreen(
 
                 if (uiState.successMessage != null) {
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = uiState.successMessage,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    SuccessMessage(message = uiState.successMessage)
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))

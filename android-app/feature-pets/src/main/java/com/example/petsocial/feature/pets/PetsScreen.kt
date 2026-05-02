@@ -20,11 +20,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.petsocial.core.network.model.pets.PetResponse
+import com.example.petsocial.core.ui.ErrorMessage
+import com.example.petsocial.core.ui.FullScreenLoading
+import com.example.petsocial.core.ui.ScreenTitle
+import com.example.petsocial.core.ui.SectionTitle
+import com.example.petsocial.core.ui.SuccessMessage
 
 @Composable
 fun PetsRoute(
@@ -73,10 +77,7 @@ private fun PetsScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text(
-                text = "Питомцы",
-                style = MaterialTheme.typography.headlineMedium
-            )
+            ScreenTitle("Питомцы")
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -87,14 +88,7 @@ private fun PetsScreen(
 
         if (uiState.isLoading) {
             item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CircularProgressIndicator()
-                }
+                FullScreenLoading()
             }
         } else {
             items(uiState.pets) { pet ->
@@ -110,10 +104,7 @@ private fun PetsScreen(
         item {
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = "Добавить питомца",
-                style = MaterialTheme.typography.titleLarge
-            )
+            SectionTitle("Добавить питомца")
         }
 
         item {
@@ -194,19 +185,13 @@ private fun PetsScreen(
 
         if (uiState.errorMessage != null) {
             item {
-                Text(
-                    text = uiState.errorMessage,
-                    color = MaterialTheme.colorScheme.error
-                )
+                ErrorMessage(message = uiState.errorMessage)
             }
         }
 
         if (uiState.successMessage != null) {
             item {
-                Text(
-                    text = uiState.successMessage,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                SuccessMessage(message = uiState.successMessage)
             }
         }
 

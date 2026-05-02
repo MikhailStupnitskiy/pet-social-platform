@@ -25,6 +25,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.petsocial.core.network.model.routine.RoutineItemResponse
+import com.example.petsocial.core.ui.ErrorMessage
+import com.example.petsocial.core.ui.FullScreenLoading
+import com.example.petsocial.core.ui.ScreenTitle
+import com.example.petsocial.core.ui.SectionTitle
+import com.example.petsocial.core.ui.SuccessMessage
 
 @Composable
 fun RoutineRoute(
@@ -69,10 +74,7 @@ private fun RoutineScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text(
-                text = "Routine",
-                style = MaterialTheme.typography.headlineMedium
-            )
+            ScreenTitle("Routine")
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -83,14 +85,7 @@ private fun RoutineScreen(
 
         if (uiState.isLoading) {
             item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CircularProgressIndicator()
-                }
+                FullScreenLoading()
             }
             return@LazyColumn
         }
@@ -138,10 +133,7 @@ private fun RoutineScreen(
         }
 
         item {
-            Text(
-                text = "Задачи ухода",
-                style = MaterialTheme.typography.titleLarge
-            )
+            SectionTitle("Задачи ухода")
         }
 
         if (uiState.items.isEmpty()) {
@@ -163,10 +155,7 @@ private fun RoutineScreen(
         item {
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = "Добавить задачу",
-                style = MaterialTheme.typography.titleLarge
-            )
+            SectionTitle("Добавить задачу")
         }
 
         item {
