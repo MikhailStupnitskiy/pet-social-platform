@@ -3,6 +3,7 @@ package com.example.petsocial.core.navigation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Task
@@ -19,6 +20,11 @@ val bottomNavItems = listOf(
         route = AppRoutes.Profile,
         title = "Профиль",
         icon = Icons.Default.Person
+    ),
+    BottomNavItem(
+        route = AppRoutes.Feed,
+        title = "Feed",
+        icon = Icons.Default.Home
     ),
     BottomNavItem(
         route = AppRoutes.Pets,

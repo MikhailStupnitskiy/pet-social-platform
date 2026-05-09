@@ -10,4 +10,5 @@ object AppRoutes {
     const val Matching = "matching"
     const val Chats = "chats"
     const val Routine = "routine"
+    const val Feed = "feed"
 }

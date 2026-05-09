@@ -19,6 +19,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.petsocial.core.navigation.AppRoutes
 import com.example.petsocial.core.navigation.bottomNavItems
 import com.example.petsocial.feature.chat.ChatsRoute
+import com.example.petsocial.feature.feed.FeedRoute
 import com.example.petsocial.feature.matching.MatchingRoute
 import com.example.petsocial.feature.pets.PetsRoute
 import com.example.petsocial.feature.profile.ProfileRoute
@@ -63,6 +64,13 @@ fun NavGraphBuilder.mainGraph(
             onLogoutClick = onLogoutClick
         )
     }
+
+    composable(AppRoutes.Feed) {
+        MainScaffold(
+            navController = navController,
+            onLogoutClick = onLogoutClick
+        )
+    }
 }
 
 @Composable
@@ -81,6 +89,7 @@ private fun MainScaffold(
         AppRoutes.Matching -> "Matching"
         AppRoutes.Chats -> "Чаты"
         AppRoutes.Routine -> "Routine"
+        AppRoutes.Feed -> "Feed"
         else -> "PetSocial"
     }
     Scaffold(
@@ -116,6 +125,10 @@ private fun MainScaffold(
 
                 AppRoutes.Routine -> {
                     RoutineRoute()
+                }
+
+                AppRoutes.Feed -> {
+                    FeedRoute()
                 }
             }
         }
