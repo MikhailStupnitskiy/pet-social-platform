@@ -12,6 +12,8 @@ const (
 	MaxFeedLimit     = 100
 	MaxBodyLength    = 2000
 	MaxImageURL      = 2048
+	CommentLimit     = 100
+	MaxCommentLength = 1000
 )
 
 type Service struct {
@@ -63,6 +65,7 @@ func (s *Service) CreatePost(
 
 func (s *Service) ListFeed(
 	ctx context.Context,
+	userID string,
 	limit int,
 ) ([]domain.Post, error) {
 	if limit == 0 {
@@ -75,12 +78,13 @@ func (s *Service) ListFeed(
 		return nil, domain.ErrFeedLimitTooLarge
 	}
 
-	return s.repo.List(ctx, limit)
+	return s.repo.List(ctx, userID, limit)
 }
 
 func (s *Service) GetPostByID(
 	ctx context.Context,
 	id string,
+	userID string,
 ) (*domain.Post, error) {
 	id = strings.TrimSpace(id)
 
@@ -88,7 +92,7 @@ func (s *Service) GetPostByID(
 		return nil, domain.ErrPostNotFound
 	}
 
-	return s.repo.GetByID(ctx, id)
+	return s.repo.GetByID(ctx, id, userID)
 }
 
 func (s *Service) UpdatePost(
@@ -125,6 +129,132 @@ func (s *Service) DeletePost(ctx context.Context, postID string, userID string) 
 	}
 
 	return s.repo.Delete(ctx, postID, userID)
+}
+
+func (s *Service) ListComments(ctx context.Context, postID string) ([]domain.Comment, error) {
+	postID = strings.TrimSpace(postID)
+	if postID == "" {
+		return nil, domain.ErrPostNotFound
+	}
+
+	exists, err := s.repo.PostExists(ctx, postID)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, domain.ErrPostNotFound
+	}
+
+	return s.repo.ListComments(ctx, postID, CommentLimit)
+}
+
+func (s *Service) CreateComment(ctx context.Context, postID string, userID string, body string) (*domain.Comment, error) {
+	postID = strings.TrimSpace(postID)
+	body = strings.TrimSpace(body)
+
+	if postID == "" {
+		return nil, domain.ErrPostNotFound
+	}
+	if body == "" {
+		return nil, domain.ErrCommentBodyRequired
+	}
+	if len([]rune(body)) > MaxCommentLength {
+		return nil, domain.ErrCommentBodyTooLong
+	}
+
+	exists, err := s.repo.PostExists(ctx, postID)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, domain.ErrPostNotFound
+	}
+
+	return s.repo.CreateComment(ctx, postID, userID, body)
+}
+
+func (s *Service) UpdateComment(ctx context.Context, postID string, commentID string, userID string, body string) (*domain.Comment, error) {
+	postID = strings.TrimSpace(postID)
+	commentID = strings.TrimSpace(commentID)
+	body = strings.TrimSpace(body)
+
+	if postID == "" {
+		return nil, domain.ErrPostNotFound
+	}
+	if commentID == "" {
+		return nil, domain.ErrCommentNotFound
+	}
+	if body == "" {
+		return nil, domain.ErrCommentBodyRequired
+	}
+	if len([]rune(body)) > MaxCommentLength {
+		return nil, domain.ErrCommentBodyTooLong
+	}
+
+	return s.repo.UpdateComment(ctx, postID, commentID, userID, body)
+}
+
+func (s *Service) DeleteComment(ctx context.Context, postID string, commentID string, userID string) error {
+	postID = strings.TrimSpace(postID)
+	commentID = strings.TrimSpace(commentID)
+
+	if postID == "" {
+		return domain.ErrPostNotFound
+	}
+	if commentID == "" {
+		return domain.ErrCommentNotFound
+	}
+
+	return s.repo.DeleteComment(ctx, postID, commentID, userID)
+}
+
+func (s *Service) SetReaction(ctx context.Context, postID string, userID string, reactionType string) error {
+	postID = strings.TrimSpace(postID)
+	reactionType = strings.TrimSpace(reactionType)
+
+	if postID == "" {
+		return domain.ErrPostNotFound
+	}
+	if !isValidReactionType(reactionType) {
+		return domain.ErrInvalidReactionType
+	}
+
+	exists, err := s.repo.PostExists(ctx, postID)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return domain.ErrPostNotFound
+	}
+
+	return s.repo.UpsertReaction(ctx, postID, userID, reactionType)
+}
+
+func (s *Service) DeleteReaction(ctx context.Context, postID string, userID string) error {
+	postID = strings.TrimSpace(postID)
+
+	if postID == "" {
+		return domain.ErrPostNotFound
+	}
+
+	exists, err := s.repo.PostExists(ctx, postID)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return domain.ErrPostNotFound
+	}
+
+	return s.repo.DeleteReaction(ctx, postID, userID)
+}
+
+func isValidReactionType(reactionType string) bool {
+	switch reactionType {
+	case "like", "love", "funny", "support":
+		return true
+	default:
+		return false
+	}
 }
 
 func trimOptional(value *string) *string {

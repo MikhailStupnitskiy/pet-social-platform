@@ -176,6 +176,12 @@ func New(deps Dependencies) http.Handler {
 		r.Get("/posts/{id}", feedHandler.GetByID)
 		r.Patch("/posts/{id}", feedHandler.Patch)
 		r.Delete("/posts/{id}", feedHandler.Delete)
+		r.Get("/posts/{id}/comments", feedHandler.ListComments)
+		r.Post("/posts/{id}/comments", feedHandler.CreateComment)
+		r.Patch("/posts/{id}/comments/{comment_id}", feedHandler.PatchComment)
+		r.Delete("/posts/{id}/comments/{comment_id}", feedHandler.DeleteComment)
+		r.Put("/posts/{id}/reaction", feedHandler.PutReaction)
+		r.Delete("/posts/{id}/reaction", feedHandler.DeleteReaction)
 	})
 
 	return r

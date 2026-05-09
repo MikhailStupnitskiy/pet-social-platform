@@ -24,13 +24,19 @@ func NewHandler(service *service.Service) *Handler {
 }
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
+	userID, ok := authhttp.UserIDFromContext(r.Context())
+	if !ok || userID == "" {
+		response.Unauthorized(w, "unauthorized")
+		return
+	}
+
 	limit, err := parseLimit(r.URL.Query().Get("limit"))
 	if err != nil {
 		response.BadRequest(w, "limit must be a number")
 		return
 	}
 
-	posts, err := h.service.ListFeed(r.Context(), limit)
+	posts, err := h.service.ListFeed(r.Context(), userID, limit)
 	if err != nil {
 		if errors.Is(err, domain.ErrFeedLimitTooSmall) || errors.Is(err, domain.ErrFeedLimitTooLarge) {
 			response.BadRequest(w, "limit must be between 1 and 100")
@@ -67,13 +73,19 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
+	userID, ok := authhttp.UserIDFromContext(r.Context())
+	if !ok || userID == "" {
+		response.Unauthorized(w, "unauthorized")
+		return
+	}
+
 	postID := strings.TrimSpace(chi.URLParam(r, "id"))
 	if postID == "" {
 		response.BadRequest(w, "post id is required")
 		return
 	}
 
-	post, err := h.service.GetPostByID(r.Context(), postID)
+	post, err := h.service.GetPostByID(r.Context(), postID, userID)
 	if err != nil {
 		writePostError(w, err)
 		return
@@ -133,6 +145,181 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *Handler) ListComments(w http.ResponseWriter, r *http.Request) {
+	if !isAuthenticated(r) {
+		response.Unauthorized(w, "unauthorized")
+		return
+	}
+
+	postID := strings.TrimSpace(chi.URLParam(r, "id"))
+	if postID == "" {
+		response.BadRequest(w, "post id is required")
+		return
+	}
+
+	comments, err := h.service.ListComments(r.Context(), postID)
+	if err != nil {
+		writePostError(w, err)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, toCommentResponses(comments))
+}
+
+func (h *Handler) CreateComment(w http.ResponseWriter, r *http.Request) {
+	userID, ok := authhttp.UserIDFromContext(r.Context())
+	if !ok || userID == "" {
+		response.Unauthorized(w, "unauthorized")
+		return
+	}
+
+	postID := strings.TrimSpace(chi.URLParam(r, "id"))
+	if postID == "" {
+		response.BadRequest(w, "post id is required")
+		return
+	}
+
+	var req CreateCommentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.BadRequest(w, "invalid request body")
+		return
+	}
+
+	comment, err := h.service.CreateComment(r.Context(), postID, userID, req.Body)
+	if err != nil {
+		writePostError(w, err)
+		return
+	}
+
+	response.JSON(w, http.StatusCreated, toCommentResponse(comment))
+}
+
+func (h *Handler) PatchComment(w http.ResponseWriter, r *http.Request) {
+	userID, ok := authhttp.UserIDFromContext(r.Context())
+	if !ok || userID == "" {
+		response.Unauthorized(w, "unauthorized")
+		return
+	}
+
+	postID := strings.TrimSpace(chi.URLParam(r, "id"))
+	commentID := strings.TrimSpace(chi.URLParam(r, "comment_id"))
+	if postID == "" {
+		response.BadRequest(w, "post id is required")
+		return
+	}
+	if commentID == "" {
+		response.BadRequest(w, "comment id is required")
+		return
+	}
+
+	var req UpdateCommentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.BadRequest(w, "invalid request body")
+		return
+	}
+
+	comment, err := h.service.UpdateComment(r.Context(), postID, commentID, userID, req.Body)
+	if err != nil {
+		writePostError(w, err)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, toCommentResponse(comment))
+}
+
+func (h *Handler) DeleteComment(w http.ResponseWriter, r *http.Request) {
+	userID, ok := authhttp.UserIDFromContext(r.Context())
+	if !ok || userID == "" {
+		response.Unauthorized(w, "unauthorized")
+		return
+	}
+
+	postID := strings.TrimSpace(chi.URLParam(r, "id"))
+	commentID := strings.TrimSpace(chi.URLParam(r, "comment_id"))
+	if postID == "" {
+		response.BadRequest(w, "post id is required")
+		return
+	}
+	if commentID == "" {
+		response.BadRequest(w, "comment id is required")
+		return
+	}
+
+	if err := h.service.DeleteComment(r.Context(), postID, commentID, userID); err != nil {
+		writePostError(w, err)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, map[string]string{
+		"status": "ok",
+	})
+}
+
+func (h *Handler) PutReaction(w http.ResponseWriter, r *http.Request) {
+	userID, ok := authhttp.UserIDFromContext(r.Context())
+	if !ok || userID == "" {
+		response.Unauthorized(w, "unauthorized")
+		return
+	}
+
+	postID := strings.TrimSpace(chi.URLParam(r, "id"))
+	if postID == "" {
+		response.BadRequest(w, "post id is required")
+		return
+	}
+
+	var req SetReactionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.BadRequest(w, "invalid request body")
+		return
+	}
+
+	if err := h.service.SetReaction(r.Context(), postID, userID, req.ReactionType); err != nil {
+		writePostError(w, err)
+		return
+	}
+
+	post, err := h.service.GetPostByID(r.Context(), postID, userID)
+	if err != nil {
+		writePostError(w, err)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, toPostResponse(post))
+}
+
+func (h *Handler) DeleteReaction(w http.ResponseWriter, r *http.Request) {
+	userID, ok := authhttp.UserIDFromContext(r.Context())
+	if !ok || userID == "" {
+		response.Unauthorized(w, "unauthorized")
+		return
+	}
+
+	postID := strings.TrimSpace(chi.URLParam(r, "id"))
+	if postID == "" {
+		response.BadRequest(w, "post id is required")
+		return
+	}
+
+	if err := h.service.DeleteReaction(r.Context(), postID, userID); err != nil {
+		writePostError(w, err)
+		return
+	}
+
+	post, err := h.service.GetPostByID(r.Context(), postID, userID)
+	if err != nil {
+		writePostError(w, err)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, toPostResponse(post))
+}
+
+func isAuthenticated(r *http.Request) bool {
+	userID, ok := authhttp.UserIDFromContext(r.Context())
+	return ok && userID != ""
+}
+
 func parseLimit(value string) (int, error) {
 	value = strings.TrimSpace(value)
 	if value == "" {
@@ -158,6 +345,16 @@ func writePostError(w http.ResponseWriter, err error) {
 		response.Forbidden(w, "post access denied")
 	case errors.Is(err, domain.ErrPostNotFound):
 		response.NotFound(w, "post not found")
+	case errors.Is(err, domain.ErrCommentBodyRequired):
+		response.BadRequest(w, "comment body is required")
+	case errors.Is(err, domain.ErrCommentBodyTooLong):
+		response.BadRequest(w, "comment body is too long")
+	case errors.Is(err, domain.ErrCommentAccessDenied):
+		response.Forbidden(w, "comment access denied")
+	case errors.Is(err, domain.ErrCommentNotFound):
+		response.NotFound(w, "comment not found")
+	case errors.Is(err, domain.ErrInvalidReactionType):
+		response.BadRequest(w, "reaction_type must be one of like, love, funny, support")
 	default:
 		response.InternalServerError(w)
 	}
