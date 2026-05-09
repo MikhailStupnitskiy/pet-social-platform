@@ -28,6 +28,10 @@ import (
 	chatsservice "pet-social-platform/backend/internal/modules/chats/service"
 	chatshttp "pet-social-platform/backend/internal/modules/chats/transport/http"
 
+	feedpostgres "pet-social-platform/backend/internal/modules/feed/repository/postgres"
+	feedservice "pet-social-platform/backend/internal/modules/feed/service"
+	feedhttp "pet-social-platform/backend/internal/modules/feed/transport/http"
+
 	routinepostgres "pet-social-platform/backend/internal/modules/routine/repository/postgres"
 	routineservice "pet-social-platform/backend/internal/modules/routine/service"
 	routinehttp "pet-social-platform/backend/internal/modules/routine/transport/http"
@@ -37,7 +41,7 @@ import (
 )
 
 type Dependencies struct {
-	DB *pgxpool.Pool
+	DB        *pgxpool.Pool
 	JWTSecret string
 }
 
@@ -86,6 +90,11 @@ func New(deps Dependencies) http.Handler {
 	routineRepo := routinepostgres.New(deps.DB)
 	routineSvc := routineservice.New(routineRepo)
 	routineHandler := routinehttp.NewHandler(routineSvc)
+
+	// feed init
+	feedRepo := feedpostgres.New(deps.DB)
+	feedSvc := feedservice.New(feedRepo)
+	feedHandler := feedhttp.NewHandler(feedSvc)
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		response.JSON(w, http.StatusOK, map[string]string{
@@ -157,6 +166,16 @@ func New(deps Dependencies) http.Handler {
 		r.Post("/", routineHandler.Create)
 		r.Patch("/{id}", routineHandler.Patch)
 		r.Post("/{id}/complete", routineHandler.Complete)
+	})
+
+	r.Route("/v1/feed", func(r chi.Router) {
+		r.Use(authhttp.AuthMiddleware(authSvc))
+
+		r.Get("/", feedHandler.List)
+		r.Post("/posts", feedHandler.Create)
+		r.Get("/posts/{id}", feedHandler.GetByID)
+		r.Patch("/posts/{id}", feedHandler.Patch)
+		r.Delete("/posts/{id}", feedHandler.Delete)
 	})
 
 	return r
