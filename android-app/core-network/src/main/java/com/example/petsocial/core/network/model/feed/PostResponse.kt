@@ -9,6 +9,10 @@ data class PostResponse(
     val pet_species: String,
     val body: String,
     val image_url: String?,
+    val comments_count: Int = 0,
+    val reactions_count: Int = 0,
+    val my_reaction: String? = null,
+    val reaction_counts: Map<String, Int> = emptyMap(),
     val created_at: String,
     val updated_at: String
 )

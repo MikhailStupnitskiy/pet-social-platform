@@ -18,7 +18,7 @@ data class BottomNavItem(
 val bottomNavItems = listOf(
     BottomNavItem(
         route = AppRoutes.Profile,
-        title = "Профиль",
+        title = "Profile",
         icon = Icons.Default.Person
     ),
     BottomNavItem(
@@ -28,7 +28,7 @@ val bottomNavItems = listOf(
     ),
     BottomNavItem(
         route = AppRoutes.Pets,
-        title = "Питомцы",
+        title = "Pets",
         icon = Icons.Default.Pets
     ),
     BottomNavItem(
@@ -38,7 +38,7 @@ val bottomNavItems = listOf(
     ),
     BottomNavItem(
         route = AppRoutes.Chats,
-        title = "Чаты",
+        title = "Chats",
         icon = Icons.Default.Chat
     ),
     BottomNavItem(
