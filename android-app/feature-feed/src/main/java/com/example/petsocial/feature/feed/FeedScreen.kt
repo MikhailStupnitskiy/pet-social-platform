@@ -1,5 +1,8 @@
 package com.example.petsocial.feature.feed
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -12,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -24,13 +28,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.example.petsocial.core.network.API_BASE_URL
 import com.example.petsocial.core.network.model.feed.CommentResponse
 import com.example.petsocial.core.network.model.feed.PostResponse
 import com.example.petsocial.core.ui.FullScreenLoading
 import com.example.petsocial.core.ui.SectionTitle
+import okhttp3.Headers
 
 @Composable
 fun FeedRoute(
@@ -45,7 +57,8 @@ fun FeedRoute(
     FeedScreen(
         uiState = uiState,
         onBodyChanged = viewModel::onBodyChanged,
-        onImageUrlChanged = viewModel::onImageUrlChanged,
+        onImageSelected = viewModel::onImageSelected,
+        onClearSelectedImage = viewModel::clearSelectedImage,
         onCreateClick = viewModel::createPost,
         onRetryClick = viewModel::load,
         onToggleCommentsClick = viewModel::toggleComments,
@@ -64,7 +77,8 @@ fun FeedRoute(
 private fun FeedScreen(
     uiState: FeedUiState,
     onBodyChanged: (String) -> Unit,
-    onImageUrlChanged: (String) -> Unit,
+    onImageSelected: (android.net.Uri?) -> Unit,
+    onClearSelectedImage: () -> Unit,
     onCreateClick: () -> Unit,
     onRetryClick: () -> Unit,
     onToggleCommentsClick: (String) -> Unit,
@@ -77,6 +91,11 @@ private fun FeedScreen(
     onSaveComment: (String, String) -> Unit,
     onDeleteComment: (String, String) -> Unit
 ) {
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = onImageSelected
+    )
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -119,14 +138,34 @@ private fun FeedScreen(
                             minLines = 3,
                             enabled = !uiState.isCreating
                         )
-                        OutlinedTextField(
-                            value = uiState.imageUrl,
-                            onValueChange = onImageUrlChanged,
+                        OutlinedButton(
+                            onClick = {
+                                imagePicker.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Image URL, optional") },
-                            singleLine = true,
                             enabled = !uiState.isCreating
-                        )
+                        ) {
+                            Text(if (uiState.selectedImageUri == null) "Choose image" else "Change image")
+                        }
+                        if (uiState.selectedImageUri != null) {
+                            AsyncImage(
+                                model = uiState.selectedImageUri,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(180.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                            )
+                            TextButton(
+                                onClick = onClearSelectedImage,
+                                enabled = !uiState.isCreating
+                            ) {
+                                Text("Remove image")
+                            }
+                        }
                         Button(
                             onClick = onCreateClick,
                             modifier = Modifier.fillMaxWidth(),
@@ -178,6 +217,7 @@ private fun FeedScreen(
                 FeedPostCard(
                     post = post,
                     currentUserId = uiState.currentUserId,
+                    authToken = uiState.authToken,
                     isExpanded = uiState.expandedPostId == post.id,
                     comments = uiState.commentsByPost[post.id].orEmpty(),
                     commentInput = uiState.commentInputs[post.id].orEmpty(),
@@ -206,6 +246,7 @@ private fun FeedScreen(
 private fun FeedPostCard(
     post: PostResponse,
     currentUserId: String,
+    authToken: String?,
     isExpanded: Boolean,
     comments: List<CommentResponse>,
     commentInput: String,
@@ -241,11 +282,11 @@ private fun FeedPostCard(
                 style = MaterialTheme.typography.bodySmall
             )
             Text(post.body)
-            if (!post.image_url.isNullOrBlank()) {
-                Text(
-                    text = "Photo: ${post.image_url}",
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.bodySmall
+            val imageUrl = post.image_url
+            if (!imageUrl.isNullOrBlank()) {
+                AuthenticatedPostImage(
+                    imageUrl = imageUrl,
+                    authToken = authToken
                 )
             }
 
@@ -286,6 +327,38 @@ private fun FeedPostCard(
             }
         }
     }
+}
+
+@Composable
+private fun AuthenticatedPostImage(
+    imageUrl: String,
+    authToken: String?
+) {
+    val context = LocalContext.current
+    val resolvedUrl = remember(imageUrl) { resolveImageUrl(imageUrl) }
+    val model = remember(context, resolvedUrl, authToken) {
+        val builder = ImageRequest.Builder(context)
+            .data(resolvedUrl)
+            .crossfade(true)
+        if (!authToken.isNullOrBlank()) {
+            builder.headers(
+                Headers.Builder()
+                    .add("Authorization", "Bearer $authToken")
+                    .build()
+            )
+        }
+        builder.build()
+    }
+
+    AsyncImage(
+        model = model,
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(220.dp)
+            .clip(RoundedCornerShape(8.dp))
+    )
 }
 
 @Composable
@@ -475,3 +548,11 @@ private fun CommentRow(
 private val reactionTypes = listOf("like", "love", "funny", "support")
 
 private fun Int?.orZero(): Int = this ?: 0
+
+private fun resolveImageUrl(imageUrl: String): String {
+    return if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+        imageUrl
+    } else {
+        API_BASE_URL.trimEnd('/') + "/" + imageUrl.trimStart('/')
+    }
+}

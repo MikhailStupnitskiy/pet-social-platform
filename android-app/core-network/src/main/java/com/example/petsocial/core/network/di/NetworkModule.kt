@@ -1,6 +1,7 @@
 package com.example.petsocial.core.network.di
 
 import com.example.petsocial.core.datastore.auth.TokenStorage
+import com.example.petsocial.core.network.API_BASE_URL
 import com.example.petsocial.core.network.interceptor.AuthInterceptor
 import com.example.petsocial.core.network.api.ProfileApi
 import dagger.Module
@@ -51,7 +52,7 @@ object NetworkModule {
         client: OkHttpClient
     ): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("http://10.0.2.2:8080/")
+            .baseUrl(API_BASE_URL)
             .client(client)
             .addConverterFactory(MoshiConverterFactory.create())
             .build()

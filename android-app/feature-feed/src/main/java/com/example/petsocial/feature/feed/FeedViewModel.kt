@@ -1,5 +1,6 @@
 package com.example.petsocial.feature.feed
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petsocial.core.auth.data.AuthRepository
@@ -7,6 +8,7 @@ import com.example.petsocial.core.common.result.AppError
 import com.example.petsocial.core.common.result.AppResult
 import com.example.petsocial.core.common.result.safeApiCall
 import com.example.petsocial.core.common.session.SessionEventBus
+import com.example.petsocial.core.datastore.auth.TokenStorage
 import com.example.petsocial.core.network.api.PetsApi
 import com.example.petsocial.core.network.model.feed.CommentResponse
 import com.example.petsocial.core.network.model.feed.PostResponse
@@ -14,6 +16,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -22,11 +25,20 @@ class FeedViewModel @Inject constructor(
     private val repository: FeedRepository,
     private val petsApi: PetsApi,
     private val authRepository: AuthRepository,
+    private val tokenStorage: TokenStorage,
     private val sessionEventBus: SessionEventBus
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FeedUiState(isLoading = true))
     val uiState: StateFlow<FeedUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            tokenStorage.token.collect { token ->
+                _uiState.value = _uiState.value.copy(authToken = token)
+            }
+        }
+    }
 
     fun load() {
         viewModelScope.launch {
@@ -100,9 +112,17 @@ class FeedViewModel @Inject constructor(
         )
     }
 
-    fun onImageUrlChanged(value: String) {
+    fun onImageSelected(uri: Uri?) {
         _uiState.value = _uiState.value.copy(
-            imageUrl = value,
+            selectedImageUri = uri,
+            errorMessage = null,
+            successMessage = null
+        )
+    }
+
+    fun clearSelectedImage() {
+        _uiState.value = _uiState.value.copy(
+            selectedImageUri = null,
             errorMessage = null,
             successMessage = null
         )
@@ -130,10 +150,14 @@ class FeedViewModel @Inject constructor(
 
             when (
                 val result = safeApiCall {
+                    val imageUrl = state.selectedImageUri?.let { uri ->
+                        repository.uploadImage(uri)
+                    }
+
                     repository.createPost(
                         petId = activePet.id,
                         body = state.body.trim(),
-                        imageUrl = state.imageUrl.trim().ifBlank { null }
+                        imageUrl = imageUrl
                     )
                 }
             ) {
@@ -141,7 +165,7 @@ class FeedViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         isCreating = false,
                         body = "",
-                        imageUrl = "",
+                        selectedImageUri = null,
                         successMessage = "Post published",
                         posts = listOf(result.data) + _uiState.value.posts
                     )

@@ -1,5 +1,6 @@
 package com.example.petsocial.feature.feed
 
+import android.net.Uri
 import com.example.petsocial.core.network.model.feed.PostResponse
 import com.example.petsocial.core.network.model.feed.CommentResponse
 
@@ -12,6 +13,8 @@ interface FeedRepository {
         body: String,
         imageUrl: String?
     ): PostResponse
+
+    suspend fun uploadImage(uri: Uri): String
 
     suspend fun getComments(postId: String): List<CommentResponse>
 

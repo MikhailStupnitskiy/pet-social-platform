@@ -1,5 +1,6 @@
 package com.example.petsocial.feature.feed
 
+import android.net.Uri
 import com.example.petsocial.core.network.model.feed.CommentResponse
 import com.example.petsocial.core.network.model.feed.PostResponse
 import com.example.petsocial.core.network.model.pets.PetResponse
@@ -10,10 +11,11 @@ data class FeedUiState(
     val currentUserId: String = "",
     val errorMessage: String? = null,
     val successMessage: String? = null,
+    val authToken: String? = null,
     val activePet: PetResponse? = null,
     val posts: List<PostResponse> = emptyList(),
     val body: String = "",
-    val imageUrl: String = "",
+    val selectedImageUri: Uri? = null,
     val expandedPostId: String? = null,
     val commentsByPost: Map<String, List<CommentResponse>> = emptyMap(),
     val commentInputs: Map<String, String> = emptyMap(),
