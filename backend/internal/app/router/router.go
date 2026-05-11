@@ -32,6 +32,9 @@ import (
 	feedservice "pet-social-platform/backend/internal/modules/feed/service"
 	feedhttp "pet-social-platform/backend/internal/modules/feed/transport/http"
 
+	imagesservice "pet-social-platform/backend/internal/modules/images/service"
+	imageshttp "pet-social-platform/backend/internal/modules/images/transport/http"
+
 	routinepostgres "pet-social-platform/backend/internal/modules/routine/repository/postgres"
 	routineservice "pet-social-platform/backend/internal/modules/routine/service"
 	routinehttp "pet-social-platform/backend/internal/modules/routine/transport/http"
@@ -41,8 +44,9 @@ import (
 )
 
 type Dependencies struct {
-	DB        *pgxpool.Pool
-	JWTSecret string
+	DB           *pgxpool.Pool
+	JWTSecret    string
+	ImageService *imagesservice.Service
 }
 
 func New(deps Dependencies) http.Handler {
@@ -95,6 +99,7 @@ func New(deps Dependencies) http.Handler {
 	feedRepo := feedpostgres.New(deps.DB)
 	feedSvc := feedservice.New(feedRepo)
 	feedHandler := feedhttp.NewHandler(feedSvc)
+	imagesHandler := imageshttp.NewHandler(deps.ImageService)
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		response.JSON(w, http.StatusOK, map[string]string{
@@ -182,6 +187,12 @@ func New(deps Dependencies) http.Handler {
 		r.Delete("/posts/{id}/comments/{comment_id}", feedHandler.DeleteComment)
 		r.Put("/posts/{id}/reaction", feedHandler.PutReaction)
 		r.Delete("/posts/{id}/reaction", feedHandler.DeleteReaction)
+	})
+
+	r.Group(func(r chi.Router) {
+		r.Use(authhttp.AuthMiddleware(authSvc))
+		r.Post("/v1/images", imagesHandler.Upload)
+		r.Get("/v1/images/{key}", imagesHandler.Get)
 	})
 
 	return r

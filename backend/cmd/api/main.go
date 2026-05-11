@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"pet-social-platform/backend/internal/app/router"
+	imagesservice "pet-social-platform/backend/internal/modules/images/service"
 	"pet-social-platform/backend/internal/platform/config"
+	"pet-social-platform/backend/internal/platform/objectstorage"
 	"pet-social-platform/backend/internal/platform/postgres"
 )
 
@@ -22,9 +26,25 @@ func main() {
 	}
 	defer dbPool.Close()
 
+	storageCtx, cancelStorage := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelStorage()
+
+	imageStorage, err := objectstorage.NewMinIOStorage(
+		storageCtx,
+		cfg.MinIO.Endpoint,
+		cfg.MinIO.AccessKey,
+		cfg.MinIO.SecretKey,
+		cfg.MinIO.Bucket,
+		cfg.MinIO.UseSSL,
+	)
+	if err != nil {
+		log.Fatalf("failed to connect to minio: %v", err)
+	}
+
 	r := router.New(router.Dependencies{
-		DB: dbPool,
-		JWTSecret: cfg.JWTSecret,
+		DB:           dbPool,
+		JWTSecret:    cfg.JWTSecret,
+		ImageService: imagesservice.New(imageStorage),
 	})
 
 	addr := fmt.Sprintf(":%s", cfg.HTTPPort)
