@@ -27,9 +27,12 @@ func (r *Repository) ListProfiles(ctx context.Context, filter domain.ProfileFilt
 			hp.display_name,
 			hp.city,
 			hp.bio,
+			hp.avatar_url,
 			hp.experience_years,
 			hp.conditions,
 			hp.is_active,
+			hp.latitude::text,
+			hp.longitude::text,
 			hp.rating_avg,
 			hp.reviews_count,
 			hp.created_at,
@@ -77,9 +80,12 @@ func (r *Repository) GetProfile(ctx context.Context, userID string) (*domain.Han
 			display_name,
 			city,
 			bio,
+			avatar_url,
 			experience_years,
 			conditions,
 			is_active,
+			latitude::text,
+			longitude::text,
 			rating_avg,
 			reviews_count,
 			created_at,
@@ -111,19 +117,25 @@ func (r *Repository) UpsertProfile(ctx context.Context, profile domain.HandlerPr
 			display_name,
 			city,
 			bio,
+			avatar_url,
 			experience_years,
 			conditions,
-			is_active
+			is_active,
+			latitude,
+			longitude
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		ON CONFLICT (user_id)
 		DO UPDATE SET
 			display_name = EXCLUDED.display_name,
 			city = EXCLUDED.city,
 			bio = EXCLUDED.bio,
+			avatar_url = EXCLUDED.avatar_url,
 			experience_years = EXCLUDED.experience_years,
 			conditions = EXCLUDED.conditions,
 			is_active = EXCLUDED.is_active,
+			latitude = EXCLUDED.latitude,
+			longitude = EXCLUDED.longitude,
 			updated_at = NOW()
 	`
 
@@ -134,9 +146,12 @@ func (r *Repository) UpsertProfile(ctx context.Context, profile domain.HandlerPr
 		profile.DisplayName,
 		profile.City,
 		profile.Bio,
+		profile.AvatarURL,
 		profile.ExperienceYears,
 		profile.Conditions,
 		profile.IsActive,
+		profile.Latitude,
+		profile.Longitude,
 	); err != nil {
 		return nil, err
 	}
@@ -595,15 +610,21 @@ func scanProfile(scanner scanner) (domain.HandlerProfile, error) {
 	var profile domain.HandlerProfile
 	var city sql.NullString
 	var bio sql.NullString
+	var avatarURL sql.NullString
 	var conditions sql.NullString
+	var latitude sql.NullString
+	var longitude sql.NullString
 	err := scanner.Scan(
 		&profile.UserID,
 		&profile.DisplayName,
 		&city,
 		&bio,
+		&avatarURL,
 		&profile.ExperienceYears,
 		&conditions,
 		&profile.IsActive,
+		&latitude,
+		&longitude,
 		&profile.RatingAvg,
 		&profile.ReviewsCount,
 		&profile.CreatedAt,
@@ -614,7 +635,10 @@ func scanProfile(scanner scanner) (domain.HandlerProfile, error) {
 	}
 	profile.City = nullableString(city)
 	profile.Bio = nullableString(bio)
+	profile.AvatarURL = nullableString(avatarURL)
 	profile.Conditions = nullableString(conditions)
+	profile.Latitude = nullableString(latitude)
+	profile.Longitude = nullableString(longitude)
 	return profile, nil
 }
 

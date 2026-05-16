@@ -21,9 +21,12 @@ type HandlerProfile struct {
 	DisplayName     string
 	City            *string
 	Bio             *string
+	AvatarURL       *string
 	ExperienceYears int
 	Conditions      *string
 	IsActive        bool
+	Latitude        *string
+	Longitude       *string
 	RatingAvg       float64
 	ReviewsCount    int
 	Services        []HandlerService

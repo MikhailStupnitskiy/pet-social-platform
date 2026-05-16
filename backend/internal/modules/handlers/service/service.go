@@ -49,14 +49,20 @@ func (s *Service) UpsertProfile(
 	displayName string,
 	city *string,
 	bio *string,
+	avatarURL *string,
 	experienceYears int,
 	conditions *string,
 	isActive bool,
+	latitude *string,
+	longitude *string,
 ) (*domain.HandlerProfile, error) {
 	displayName = strings.TrimSpace(displayName)
 	city = trimOptional(city)
 	bio = trimOptional(bio)
+	avatarURL = trimOptional(avatarURL)
 	conditions = trimOptional(conditions)
+	latitude = trimOptional(latitude)
+	longitude = trimOptional(longitude)
 
 	if displayName == "" {
 		return nil, domain.ErrDisplayNameRequired
@@ -79,9 +85,12 @@ func (s *Service) UpsertProfile(
 		DisplayName:     displayName,
 		City:            city,
 		Bio:             bio,
+		AvatarURL:       avatarURL,
 		ExperienceYears: experienceYears,
 		Conditions:      conditions,
 		IsActive:        isActive,
+		Latitude:        latitude,
+		Longitude:       longitude,
 	})
 	if err != nil {
 		return nil, err

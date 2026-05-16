@@ -38,6 +38,11 @@ func (h *Handler) ListChats(w http.ResponseWriter, r *http.Request) {
 
 	result := make([]ChatResponse, 0, len(chats))
 	for _, chat := range chats {
+		var lastMessageAt *string
+		if chat.LastMessageAt != nil {
+			formatted := chat.LastMessageAt.Format(time.RFC3339)
+			lastMessageAt = &formatted
+		}
 		result = append(result, ChatResponse{
 			ID:               chat.ID,
 			MatchID:          chat.MatchID,
@@ -46,6 +51,13 @@ func (h *Handler) ListChats(w http.ResponseWriter, r *http.Request) {
 			Pet2ID:           chat.Pet2ID,
 			ClientUserID:     chat.ClientUserID,
 			HandlerUserID:    chat.HandlerUserID,
+			Title:            chat.Title,
+			Subtitle:         chat.Subtitle,
+			AvatarURL:        chat.AvatarURL,
+			LastMessage:      chat.LastMessage,
+			LastMessageAt:    lastMessageAt,
+			UnreadCount:      chat.UnreadCount,
+			IsNewMatch:       chat.IsNewMatch,
 			CreatedAt:        chat.CreatedAt.Format(time.RFC3339),
 		})
 	}

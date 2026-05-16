@@ -11,8 +11,8 @@ type ChatEnsurer interface {
 }
 
 type Service struct {
-	repo         domain.Repository
-	chatEnsurer  ChatEnsurer
+	repo        domain.Repository
+	chatEnsurer ChatEnsurer
 }
 
 func New(repo domain.Repository, chatEnsurer ChatEnsurer) *Service {

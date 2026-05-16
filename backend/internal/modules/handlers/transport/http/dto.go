@@ -4,9 +4,12 @@ type UpsertHandlerProfileRequest struct {
 	DisplayName     string  `json:"display_name"`
 	City            *string `json:"city"`
 	Bio             *string `json:"bio"`
+	AvatarURL       *string `json:"avatar_url"`
 	ExperienceYears int     `json:"experience_years"`
 	Conditions      *string `json:"conditions"`
 	IsActive        bool    `json:"is_active"`
+	Latitude        *string `json:"latitude"`
+	Longitude       *string `json:"longitude"`
 }
 
 type HandlerProfileResponse struct {
@@ -14,9 +17,12 @@ type HandlerProfileResponse struct {
 	DisplayName     string                   `json:"display_name"`
 	City            *string                  `json:"city,omitempty"`
 	Bio             *string                  `json:"bio,omitempty"`
+	AvatarURL       *string                  `json:"avatar_url,omitempty"`
 	ExperienceYears int                      `json:"experience_years"`
 	Conditions      *string                  `json:"conditions,omitempty"`
 	IsActive        bool                     `json:"is_active"`
+	Latitude        *string                  `json:"latitude,omitempty"`
+	Longitude       *string                  `json:"longitude,omitempty"`
 	RatingAvg       float64                  `json:"rating_avg"`
 	ReviewsCount    int                      `json:"reviews_count"`
 	Services        []HandlerServiceResponse `json:"services"`

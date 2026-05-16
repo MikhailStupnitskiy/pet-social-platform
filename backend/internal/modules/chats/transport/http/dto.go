@@ -8,6 +8,13 @@ type ChatResponse struct {
 	Pet2ID           *string `json:"pet2_id,omitempty"`
 	ClientUserID     *string `json:"client_user_id,omitempty"`
 	HandlerUserID    *string `json:"handler_user_id,omitempty"`
+	Title            string  `json:"title"`
+	Subtitle         string  `json:"subtitle"`
+	AvatarURL        *string `json:"avatar_url,omitempty"`
+	LastMessage      *string `json:"last_message,omitempty"`
+	LastMessageAt    *string `json:"last_message_at,omitempty"`
+	UnreadCount      int     `json:"unread_count"`
+	IsNewMatch       bool    `json:"is_new_match"`
 	CreatedAt        string  `json:"created_at"`
 }
 

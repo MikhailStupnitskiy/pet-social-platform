@@ -28,7 +28,14 @@ func (s *Service) ListMessages(ctx context.Context, chatID string, userID string
 		return nil, domain.ErrAccessDenied
 	}
 
-	return s.repo.ListMessages(ctx, chatID)
+	messages, err := s.repo.ListMessages(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.repo.MarkChatRead(ctx, chatID, userID); err != nil {
+		return nil, err
+	}
+	return messages, nil
 }
 
 func (s *Service) SendMessage(ctx context.Context, chatID string, userID string, body string) (*domain.Message, error) {

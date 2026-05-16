@@ -95,9 +95,12 @@ func (h *Handler) UpsertMe(w http.ResponseWriter, r *http.Request) {
 		req.DisplayName,
 		req.City,
 		req.Bio,
+		req.AvatarURL,
 		req.ExperienceYears,
 		req.Conditions,
 		req.IsActive,
+		req.Latitude,
+		req.Longitude,
 	)
 	if err != nil {
 		writeError(w, err)
@@ -287,9 +290,12 @@ func toProfileResponse(profile *domain.HandlerProfile) HandlerProfileResponse {
 		DisplayName:     profile.DisplayName,
 		City:            profile.City,
 		Bio:             profile.Bio,
+		AvatarURL:       profile.AvatarURL,
 		ExperienceYears: profile.ExperienceYears,
 		Conditions:      profile.Conditions,
 		IsActive:        profile.IsActive,
+		Latitude:        profile.Latitude,
+		Longitude:       profile.Longitude,
 		RatingAvg:       profile.RatingAvg,
 		ReviewsCount:    profile.ReviewsCount,
 		Services:        services,

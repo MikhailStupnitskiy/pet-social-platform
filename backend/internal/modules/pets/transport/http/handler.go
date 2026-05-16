@@ -71,14 +71,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 
 	pet, err := h.service.CreatePet(
 		r.Context(),
-		ownerID,
-		name,
-		species,
-		trimPtr(req.Breed),
-		trimPtr(req.Sex),
-		req.BirthDate,
-		trimPtr(req.WeightKg),
-		trimPtr(req.Bio),
+		petFromCreateRequest(ownerID, name, species, req),
 	)
 	if err != nil {
 		response.InternalServerError(w)
@@ -147,15 +140,7 @@ func (h *Handler) Patch(w http.ResponseWriter, r *http.Request) {
 
 	pet, err := h.service.UpdateMyPet(
 		r.Context(),
-		petID,
-		ownerID,
-		name,
-		species,
-		trimPtr(req.Breed),
-		trimPtr(req.Sex),
-		req.BirthDate,
-		trimPtr(req.WeightKg),
-		trimPtr(req.Bio),
+		petFromUpdateRequest(petID, ownerID, name, species, req),
 	)
 	if err != nil {
 		if errors.Is(err, domain.ErrPetNotFound) {
@@ -204,19 +189,94 @@ func toPetResponse(pet *domain.Pet) PetResponse {
 	}
 
 	return PetResponse{
-		ID:        pet.ID,
-		OwnerID:   pet.OwnerID,
-		Name:      pet.Name,
-		Species:   pet.Species,
-		Breed:     pet.Breed,
-		Sex:       pet.Sex,
-		BirthDate: birthDate,
-		WeightKg:  pet.WeightKg,
-		Bio:       pet.Bio,
-		IsActive:  pet.IsActive,
-		CreatedAt: pet.CreatedAt.Format(time.RFC3339),
-		UpdatedAt: pet.UpdatedAt.Format(time.RFC3339),
+		ID:                 pet.ID,
+		OwnerID:            pet.OwnerID,
+		Name:               pet.Name,
+		Species:            pet.Species,
+		Breed:              pet.Breed,
+		Sex:                pet.Sex,
+		BirthDate:          birthDate,
+		WeightKg:           pet.WeightKg,
+		Bio:                pet.Bio,
+		PhotoURL:           pet.PhotoURL,
+		PersonalityTags:    pet.PersonalityTags,
+		Interests:          pet.Interests,
+		HealthNotes:        pet.HealthNotes,
+		MatchingGoal:       pet.MatchingGoal,
+		SearchRadiusMeters: pet.SearchRadiusMeters,
+		Latitude:           pet.Latitude,
+		Longitude:          pet.Longitude,
+		IsActive:           pet.IsActive,
+		CreatedAt:          pet.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:          pet.UpdatedAt.Format(time.RFC3339),
 	}
+}
+
+func petFromCreateRequest(ownerID string, name string, species string, req CreatePetRequest) domain.Pet {
+	return domain.Pet{
+		OwnerID:            ownerID,
+		Name:               name,
+		Species:            species,
+		Breed:              trimPtr(req.Breed),
+		Sex:                trimPtr(req.Sex),
+		BirthDate:          parseDatePtr(req.BirthDate),
+		WeightKg:           trimPtr(req.WeightKg),
+		Bio:                trimPtr(req.Bio),
+		PhotoURL:           trimPtr(req.PhotoURL),
+		PersonalityTags:    cleanList(req.PersonalityTags),
+		Interests:          cleanList(req.Interests),
+		HealthNotes:        trimPtr(req.HealthNotes),
+		MatchingGoal:       trimPtr(req.MatchingGoal),
+		SearchRadiusMeters: radiusOrDefault(req.SearchRadiusMeters),
+		Latitude:           trimPtr(req.Latitude),
+		Longitude:          trimPtr(req.Longitude),
+	}
+}
+
+func petFromUpdateRequest(petID string, ownerID string, name string, species string, req UpdatePetRequest) domain.Pet {
+	pet := domain.Pet{
+		ID: petID,
+	}
+	create := CreatePetRequest(req)
+	created := petFromCreateRequest(ownerID, name, species, create)
+	created.ID = pet.ID
+	return created
+}
+
+func radiusOrDefault(value *int) int {
+	if value == nil || *value <= 0 {
+		return 3000
+	}
+	return *value
+}
+
+func parseDatePtr(value *string) *time.Time {
+	if value == nil || strings.TrimSpace(*value) == "" {
+		return nil
+	}
+	parsed, err := time.Parse("2006-01-02", strings.TrimSpace(*value))
+	if err != nil {
+		return nil
+	}
+	return &parsed
+}
+
+func cleanList(values []string) []string {
+	result := make([]string, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			continue
+		}
+		key := strings.ToLower(trimmed)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		result = append(result, trimmed)
+	}
+	return result
 }
 
 func trimPtr(value *string) *string {

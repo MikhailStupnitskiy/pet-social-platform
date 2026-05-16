@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"sort"
+	"strings"
 
 	"pet-social-platform/backend/internal/modules/matching/domain"
 
@@ -33,8 +34,51 @@ func (r *Repository) IsOwnedByUser(ctx context.Context, petID string, ownerID st
 
 func (r *Repository) GetRecommendations(ctx context.Context, sourcePetID string, ownerID string) ([]domain.Recommendation, error) {
 	const query = `
-		SELECT p.id, p.owner_id, p.name, p.species, p.breed, p.sex, p.birth_date, p.weight_kg::text, p.bio, p.is_active, p.created_at, p.updated_at
+		WITH source_pet AS (
+			SELECT species, latitude, longitude
+			FROM pets
+			WHERE id = $1
+		)
+		SELECT
+			p.id,
+			p.owner_id,
+			p.name,
+			p.species,
+			p.breed,
+			p.sex,
+			p.birth_date,
+			p.weight_kg::text,
+			p.bio,
+			p.photo_url,
+			COALESCE(p.personality_tags, '{}'),
+			COALESCE(p.interests, '{}'),
+			p.health_notes,
+			p.matching_goal,
+			p.search_radius_meters,
+			p.latitude::text,
+			p.longitude::text,
+			CASE
+				WHEN source_pet.latitude IS NULL
+				  OR source_pet.longitude IS NULL
+				  OR p.latitude IS NULL
+				  OR p.longitude IS NULL
+				THEN NULL
+				ELSE ROUND(
+					6371000 * 2 * ASIN(
+						SQRT(
+							POWER(SIN(RADIANS((p.latitude - source_pet.latitude) / 2)), 2)
+							+ COS(RADIANS(source_pet.latitude))
+							* COS(RADIANS(p.latitude))
+							* POWER(SIN(RADIANS((p.longitude - source_pet.longitude) / 2)), 2)
+						)
+					)
+				)::integer
+			END AS distance_meters,
+			p.is_active,
+			p.created_at,
+			p.updated_at
 		FROM pets p
+		CROSS JOIN source_pet
 		WHERE p.owner_id <> $2
 		  AND p.id <> $1
 		  AND NOT EXISTS (
@@ -42,12 +86,8 @@ func (r *Repository) GetRecommendations(ctx context.Context, sourcePetID string,
 			  FROM swipe_actions s
 			  WHERE s.source_pet_id = $1 AND s.target_pet_id = p.id
 		  )
-		  AND p.species = (
-			  SELECT species
-			  FROM pets
-			  WHERE id = $1
-		  )
-		ORDER BY p.created_at ASC
+		  AND p.species = source_pet.species
+		ORDER BY distance_meters NULLS LAST, p.created_at ASC
 		LIMIT 20
 	`
 
@@ -71,12 +111,23 @@ func (r *Repository) GetRecommendations(ctx context.Context, sourcePetID string,
 			&item.BirthDate,
 			&item.WeightKg,
 			&item.Bio,
+			&item.PhotoURL,
+			&item.PersonalityTags,
+			&item.Interests,
+			&item.HealthNotes,
+			&item.MatchingGoal,
+			&item.SearchRadiusMeters,
+			&item.Latitude,
+			&item.Longitude,
+			&item.DistanceMeters,
 			&item.IsActive,
 			&item.CreatedAt,
 			&item.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
+		item.PersonalityTags = normalizeList(item.PersonalityTags)
+		item.Interests = normalizeList(item.Interests)
 
 		result = append(result, item)
 	}
@@ -162,4 +213,15 @@ func (r *Repository) ListMatchesByPetID(ctx context.Context, petID string, owner
 	}
 
 	return matches, rows.Err()
+}
+
+func normalizeList(values []string) []string {
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
 }

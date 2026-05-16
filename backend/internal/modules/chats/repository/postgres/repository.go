@@ -22,7 +22,7 @@ func New(db *pgxpool.Pool) *Repository {
 
 func (r *Repository) ListByUserID(ctx context.Context, userID string) ([]domain.Chat, error) {
 	const query = `
-		SELECT DISTINCT
+		SELECT
 			c.id,
 			c.match_id,
 			c.service_request_id,
@@ -30,13 +30,56 @@ func (r *Repository) ListByUserID(ctx context.Context, userID string) ([]domain.
 			c.pet2_id,
 			c.client_user_id,
 			c.handler_user_id,
+			CASE
+				WHEN c.service_request_id IS NOT NULL AND c.client_user_id = $1 THEN COALESCE(hp.display_name, 'Специалист')
+				WHEN c.service_request_id IS NOT NULL THEN COALESCE(client_profile.name, 'Клиент')
+				WHEN p1.owner_id = $1 THEN COALESCE(p2.name, 'Питомец')
+				ELSE COALESCE(p1.name, 'Питомец')
+			END AS title,
+			CASE
+				WHEN c.service_request_id IS NOT NULL THEN COALESCE(hs.title, 'Услуга')
+				WHEN p1.owner_id = $1 THEN COALESCE(p2.breed, p2.species, 'Мэтч')
+				ELSE COALESCE(p1.breed, p1.species, 'Мэтч')
+			END AS subtitle,
+			CASE
+				WHEN c.service_request_id IS NOT NULL AND c.client_user_id = $1 THEN hp.avatar_url
+				WHEN c.service_request_id IS NOT NULL THEN client_profile.avatar_url
+				WHEN p1.owner_id = $1 THEN p2.photo_url
+				ELSE p1.photo_url
+			END AS avatar_url,
+			last_message.body,
+			last_message.created_at,
+			COALESCE(unread.unread_count, 0),
+			(c.match_id IS NOT NULL AND last_message.id IS NULL),
 			c.created_at
 		FROM chats c
-		LEFT JOIN pets p ON p.id = c.pet1_id OR p.id = c.pet2_id
-		WHERE p.owner_id = $1
+		LEFT JOIN pets p1 ON p1.id = c.pet1_id
+		LEFT JOIN pets p2 ON p2.id = c.pet2_id
+		LEFT JOIN service_requests sr ON sr.id = c.service_request_id
+		LEFT JOIN handler_services hs ON hs.id = sr.service_id
+		LEFT JOIN handler_profiles hp ON hp.user_id = c.handler_user_id
+		LEFT JOIN user_profiles client_profile ON client_profile.user_id = c.client_user_id
+		LEFT JOIN chat_read_states read_state
+			ON read_state.chat_id = c.id AND read_state.user_id = $1
+		LEFT JOIN LATERAL (
+			SELECT id, body, created_at
+			FROM messages
+			WHERE chat_id = c.id
+			ORDER BY created_at DESC
+			LIMIT 1
+		) last_message ON TRUE
+		LEFT JOIN LATERAL (
+			SELECT COUNT(*) AS unread_count
+			FROM messages m
+			WHERE m.chat_id = c.id
+			  AND m.sender_user_id <> $1
+			  AND m.created_at > COALESCE(read_state.last_read_at, 'epoch'::timestamptz)
+		) unread ON TRUE
+		WHERE p1.owner_id = $1
+		   OR p2.owner_id = $1
 		   OR c.client_user_id = $1
 		   OR c.handler_user_id = $1
-		ORDER BY c.created_at DESC
+		ORDER BY COALESCE(last_message.created_at, c.created_at) DESC
 	`
 
 	rows, err := r.db.Query(ctx, query, userID)
@@ -107,6 +150,17 @@ func (r *Repository) ListMessages(ctx context.Context, chatID string) ([]domain.
 	}
 
 	return messages, rows.Err()
+}
+
+func (r *Repository) MarkChatRead(ctx context.Context, chatID string, userID string) error {
+	const query = `
+		INSERT INTO chat_read_states (chat_id, user_id, last_read_at)
+		VALUES ($1, $2, NOW())
+		ON CONFLICT (chat_id, user_id)
+		DO UPDATE SET last_read_at = EXCLUDED.last_read_at
+	`
+	_, err := r.db.Exec(ctx, query, chatID, userID)
+	return err
 }
 
 func (r *Repository) CreateMessage(ctx context.Context, chatID string, senderUserID string, body string) (*domain.Message, error) {
@@ -201,6 +255,9 @@ func scanChat(scanner chatScanner) (domain.Chat, error) {
 	var pet2ID sql.NullString
 	var clientUserID sql.NullString
 	var handlerUserID sql.NullString
+	var avatarURL sql.NullString
+	var lastMessage sql.NullString
+	var lastMessageAt sql.NullTime
 
 	err := scanner.Scan(
 		&chat.ID,
@@ -210,6 +267,13 @@ func scanChat(scanner chatScanner) (domain.Chat, error) {
 		&pet2ID,
 		&clientUserID,
 		&handlerUserID,
+		&chat.Title,
+		&chat.Subtitle,
+		&avatarURL,
+		&lastMessage,
+		&lastMessageAt,
+		&chat.UnreadCount,
+		&chat.IsNewMatch,
 		&chat.CreatedAt,
 	)
 	if err != nil {
@@ -221,6 +285,11 @@ func scanChat(scanner chatScanner) (domain.Chat, error) {
 	chat.Pet2ID = nullableString(pet2ID)
 	chat.ClientUserID = nullableString(clientUserID)
 	chat.HandlerUserID = nullableString(handlerUserID)
+	chat.AvatarURL = nullableString(avatarURL)
+	chat.LastMessage = nullableString(lastMessage)
+	if lastMessageAt.Valid {
+		chat.LastMessageAt = &lastMessageAt.Time
+	}
 	return chat, nil
 }
 

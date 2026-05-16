@@ -20,16 +20,9 @@ func (s *Service) ListMyPets(ctx context.Context, ownerID string) ([]domain.Pet,
 
 func (s *Service) CreatePet(
 	ctx context.Context,
-	ownerID string,
-	name string,
-	species string,
-	breed *string,
-	sex *string,
-	birthDate *string,
-	weightKg *string,
-	bio *string,
+	pet domain.Pet,
 ) (*domain.Pet, error) {
-	return s.repo.Create(ctx, ownerID, name, species, breed, sex, birthDate, weightKg, bio)
+	return s.repo.Create(ctx, pet)
 }
 
 func (s *Service) GetMyPet(ctx context.Context, petID string, ownerID string) (*domain.Pet, error) {
@@ -38,17 +31,9 @@ func (s *Service) GetMyPet(ctx context.Context, petID string, ownerID string) (*
 
 func (s *Service) UpdateMyPet(
 	ctx context.Context,
-	petID string,
-	ownerID string,
-	name string,
-	species string,
-	breed *string,
-	sex *string,
-	birthDate *string,
-	weightKg *string,
-	bio *string,
+	pet domain.Pet,
 ) (*domain.Pet, error) {
-	return s.repo.Update(ctx, petID, ownerID, name, species, breed, sex, birthDate, weightKg, bio)
+	return s.repo.Update(ctx, pet)
 }
 
 func (s *Service) SetActivePet(ctx context.Context, petID string, ownerID string) error {
