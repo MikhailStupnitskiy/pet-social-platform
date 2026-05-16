@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"sort"
 
@@ -21,10 +22,20 @@ func New(db *pgxpool.Pool) *Repository {
 
 func (r *Repository) ListByUserID(ctx context.Context, userID string) ([]domain.Chat, error) {
 	const query = `
-		SELECT DISTINCT c.id, c.match_id, c.pet1_id, c.pet2_id, c.created_at
+		SELECT DISTINCT
+			c.id,
+			c.match_id,
+			c.service_request_id,
+			c.pet1_id,
+			c.pet2_id,
+			c.client_user_id,
+			c.handler_user_id,
+			c.created_at
 		FROM chats c
-		JOIN pets p ON p.id = c.pet1_id OR p.id = c.pet2_id
+		LEFT JOIN pets p ON p.id = c.pet1_id OR p.id = c.pet2_id
 		WHERE p.owner_id = $1
+		   OR c.client_user_id = $1
+		   OR c.handler_user_id = $1
 		ORDER BY c.created_at DESC
 	`
 
@@ -36,14 +47,8 @@ func (r *Repository) ListByUserID(ctx context.Context, userID string) ([]domain.
 
 	var chats []domain.Chat
 	for rows.Next() {
-		var chat domain.Chat
-		if err := rows.Scan(
-			&chat.ID,
-			&chat.MatchID,
-			&chat.Pet1ID,
-			&chat.Pet2ID,
-			&chat.CreatedAt,
-		); err != nil {
+		chat, err := scanChat(rows)
+		if err != nil {
 			return nil, err
 		}
 		chats = append(chats, chat)
@@ -57,8 +62,13 @@ func (r *Repository) CanUserAccessChat(ctx context.Context, chatID string, userI
 		SELECT EXISTS (
 			SELECT 1
 			FROM chats c
-			JOIN pets p ON p.id = c.pet1_id OR p.id = c.pet2_id
-			WHERE c.id = $1 AND p.owner_id = $2
+			LEFT JOIN pets p ON p.id = c.pet1_id OR p.id = c.pet2_id
+			WHERE c.id = $1
+			  AND (
+				p.owner_id = $2
+				OR c.client_user_id = $2
+				OR c.handler_user_id = $2
+			  )
 		)
 	`
 
@@ -136,6 +146,28 @@ func (r *Repository) CreateChatIfNotExists(ctx context.Context, matchID string, 
 	return err
 }
 
+func (r *Repository) CreateServiceRequestChatIfNotExists(ctx context.Context, requestID string) error {
+	const query = `
+		INSERT INTO chats (
+			service_request_id,
+			pet1_id,
+			client_user_id,
+			handler_user_id
+		)
+		SELECT
+			sr.id,
+			sr.pet_id,
+			sr.client_user_id,
+			sr.handler_user_id
+		FROM service_requests sr
+		WHERE sr.id = $1
+		ON CONFLICT (service_request_id) DO NOTHING
+	`
+
+	_, err := r.db.Exec(ctx, query, requestID)
+	return err
+}
+
 func (r *Repository) GetMatchIDByPets(ctx context.Context, pet1ID string, pet2ID string) (string, error) {
 	ordered := []string{pet1ID, pet2ID}
 	sort.Strings(ordered)
@@ -156,4 +188,46 @@ func (r *Repository) GetMatchIDByPets(ctx context.Context, pet1ID string, pet2ID
 	}
 
 	return matchID, nil
+}
+
+type chatScanner interface {
+	Scan(dest ...any) error
+}
+
+func scanChat(scanner chatScanner) (domain.Chat, error) {
+	var chat domain.Chat
+	var matchID sql.NullString
+	var serviceRequestID sql.NullString
+	var pet2ID sql.NullString
+	var clientUserID sql.NullString
+	var handlerUserID sql.NullString
+
+	err := scanner.Scan(
+		&chat.ID,
+		&matchID,
+		&serviceRequestID,
+		&chat.Pet1ID,
+		&pet2ID,
+		&clientUserID,
+		&handlerUserID,
+		&chat.CreatedAt,
+	)
+	if err != nil {
+		return domain.Chat{}, err
+	}
+
+	chat.MatchID = nullableString(matchID)
+	chat.ServiceRequestID = nullableString(serviceRequestID)
+	chat.Pet2ID = nullableString(pet2ID)
+	chat.ClientUserID = nullableString(clientUserID)
+	chat.HandlerUserID = nullableString(handlerUserID)
+	return chat, nil
+}
+
+func nullableString(value sql.NullString) *string {
+	if !value.Valid {
+		return nil
+	}
+	result := value.String
+	return &result
 }

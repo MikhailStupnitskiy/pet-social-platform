@@ -21,13 +21,13 @@ func New(repo domain.Repository, jwt *JWTService) *Service {
 	}
 }
 
-func (s *Service) Register(ctx context.Context, email string, password string) (string, *domain.User, error) {
+func (s *Service) Register(ctx context.Context, email string, password string, isHandler bool) (string, *domain.User, error) {
 	passwordHash, err := HashPassword(password)
 	if err != nil {
 		return "", nil, err
 	}
 
-	user, err := s.repo.CreateUser(ctx, email, passwordHash)
+	user, err := s.repo.CreateUser(ctx, email, passwordHash, isHandler)
 	if err != nil {
 		return "", nil, err
 	}

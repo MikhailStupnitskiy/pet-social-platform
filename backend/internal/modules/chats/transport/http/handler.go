@@ -39,11 +39,14 @@ func (h *Handler) ListChats(w http.ResponseWriter, r *http.Request) {
 	result := make([]ChatResponse, 0, len(chats))
 	for _, chat := range chats {
 		result = append(result, ChatResponse{
-			ID:        chat.ID,
-			MatchID:   chat.MatchID,
-			Pet1ID:    chat.Pet1ID,
-			Pet2ID:    chat.Pet2ID,
-			CreatedAt: chat.CreatedAt.Format(time.RFC3339),
+			ID:               chat.ID,
+			MatchID:          chat.MatchID,
+			ServiceRequestID: chat.ServiceRequestID,
+			Pet1ID:           chat.Pet1ID,
+			Pet2ID:           chat.Pet2ID,
+			ClientUserID:     chat.ClientUserID,
+			HandlerUserID:    chat.HandlerUserID,
+			CreatedAt:        chat.CreatedAt.Format(time.RFC3339),
 		})
 	}
 
@@ -77,10 +80,10 @@ func (h *Handler) ListMessages(w http.ResponseWriter, r *http.Request) {
 	for _, message := range messages {
 		result = append(result, MessageResponse{
 			ID:           message.ID,
-			ChatID:        message.ChatID,
-			SenderUserID:  message.SenderUserID,
-			Body:          message.Body,
-			CreatedAt:     message.CreatedAt.Format(time.RFC3339),
+			ChatID:       message.ChatID,
+			SenderUserID: message.SenderUserID,
+			Body:         message.Body,
+			CreatedAt:    message.CreatedAt.Format(time.RFC3339),
 		})
 	}
 
@@ -121,9 +124,9 @@ func (h *Handler) SendMessage(w http.ResponseWriter, r *http.Request) {
 
 	response.JSON(w, http.StatusCreated, MessageResponse{
 		ID:           message.ID,
-		ChatID:        message.ChatID,
-		SenderUserID:  message.SenderUserID,
-		Body:          message.Body,
-		CreatedAt:     message.CreatedAt.Format(time.RFC3339),
+		ChatID:       message.ChatID,
+		SenderUserID: message.SenderUserID,
+		Body:         message.Body,
+		CreatedAt:    message.CreatedAt.Format(time.RFC3339),
 	})
 }

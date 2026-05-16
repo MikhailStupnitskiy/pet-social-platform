@@ -10,4 +10,5 @@ type Repository interface {
 
 	CreateChatIfNotExists(ctx context.Context, matchID string, pet1ID string, pet2ID string) error
 	GetMatchIDByPets(ctx context.Context, pet1ID string, pet2ID string) (string, error)
+	CreateServiceRequestChatIfNotExists(ctx context.Context, requestID string) error
 }

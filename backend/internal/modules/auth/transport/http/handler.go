@@ -40,7 +40,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, user, err := h.service.Register(r.Context(), req.Email, req.Password)
+	token, user, err := h.service.Register(r.Context(), req.Email, req.Password, req.IsHandler)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserAlreadyExists) {
 			response.Error(w, http.StatusConflict, "user_already_exists", "user already exists")
@@ -54,8 +54,9 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusCreated, AuthResponse{
 		Token: token,
 		User: UserPayload{
-			ID:    user.ID,
-			Email: user.Email,
+			ID:        user.ID,
+			Email:     user.Email,
+			IsHandler: user.IsHandler,
 		},
 	})
 }
@@ -95,8 +96,9 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, AuthResponse{
 		Token: token,
 		User: UserPayload{
-			ID:    user.ID,
-			Email: user.Email,
+			ID:        user.ID,
+			Email:     user.Email,
+			IsHandler: user.IsHandler,
 		},
 	})
 }
@@ -115,7 +117,8 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.JSON(w, http.StatusOK, UserPayload{
-		ID:    user.ID,
-		Email: user.Email,
+		ID:        user.ID,
+		Email:     user.Email,
+		IsHandler: user.IsHandler,
 	})
 }

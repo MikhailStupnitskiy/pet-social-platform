@@ -32,6 +32,10 @@ import (
 	feedservice "pet-social-platform/backend/internal/modules/feed/service"
 	feedhttp "pet-social-platform/backend/internal/modules/feed/transport/http"
 
+	handlerspostgres "pet-social-platform/backend/internal/modules/handlers/repository/postgres"
+	handlersservice "pet-social-platform/backend/internal/modules/handlers/service"
+	handlershttp "pet-social-platform/backend/internal/modules/handlers/transport/http"
+
 	imagesservice "pet-social-platform/backend/internal/modules/images/service"
 	imageshttp "pet-social-platform/backend/internal/modules/images/transport/http"
 
@@ -100,6 +104,11 @@ func New(deps Dependencies) http.Handler {
 	feedSvc := feedservice.New(feedRepo)
 	feedHandler := feedhttp.NewHandler(feedSvc)
 	imagesHandler := imageshttp.NewHandler(deps.ImageService)
+
+	// handlers init
+	handlersRepo := handlerspostgres.New(deps.DB)
+	handlersSvc := handlersservice.New(handlersRepo)
+	handlersHandler := handlershttp.NewHandler(handlersSvc)
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		response.JSON(w, http.StatusOK, map[string]string{
@@ -187,6 +196,28 @@ func New(deps Dependencies) http.Handler {
 		r.Delete("/posts/{id}/comments/{comment_id}", feedHandler.DeleteComment)
 		r.Put("/posts/{id}/reaction", feedHandler.PutReaction)
 		r.Delete("/posts/{id}/reaction", feedHandler.DeleteReaction)
+	})
+
+	r.Route("/v1/handlers", func(r chi.Router) {
+		r.Use(authhttp.AuthMiddleware(authSvc))
+
+		r.Get("/", handlersHandler.ListProfiles)
+		r.Get("/me", handlersHandler.GetMe)
+		r.Put("/me", handlersHandler.UpsertMe)
+		r.Patch("/me", handlersHandler.UpsertMe)
+		r.Post("/me/services", handlersHandler.CreateService)
+		r.Patch("/me/services/{id}", handlersHandler.UpdateService)
+		r.Delete("/me/services/{id}", handlersHandler.DeleteService)
+		r.Get("/{id}", handlersHandler.GetProfile)
+	})
+
+	r.Route("/v1/service-requests", func(r chi.Router) {
+		r.Use(authhttp.AuthMiddleware(authSvc))
+
+		r.Get("/", handlersHandler.ListRequests)
+		r.Post("/", handlersHandler.CreateRequest)
+		r.Patch("/{id}/status", handlersHandler.UpdateRequestStatus)
+		r.Post("/{id}/review", handlersHandler.CreateReview)
 	})
 
 	r.Group(func(r chi.Router) {

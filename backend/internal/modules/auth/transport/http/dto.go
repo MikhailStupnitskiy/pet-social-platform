@@ -1,8 +1,9 @@
 package http
 
 type RegisterRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email     string `json:"email"`
+	Password  string `json:"password"`
+	IsHandler bool   `json:"is_handler"`
 }
 
 type LoginRequest struct {
@@ -16,6 +17,7 @@ type AuthResponse struct {
 }
 
 type UserPayload struct {
-	ID    string `json:"id"`
-	Email string `json:"email"`
+	ID        string `json:"id"`
+	Email     string `json:"email"`
+	IsHandler bool   `json:"is_handler"`
 }
