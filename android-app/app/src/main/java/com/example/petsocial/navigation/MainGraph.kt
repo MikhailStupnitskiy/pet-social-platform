@@ -1,15 +1,21 @@
 package com.example.petsocial.navigation
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -18,7 +24,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.petsocial.core.navigation.AppRoutes
-import com.example.petsocial.core.navigation.bottomNavItems
+import com.example.petsocial.core.navigation.bottomNavItemsFor
+import com.example.petsocial.core.ui.PetSocialTopBar
 import com.example.petsocial.feature.chat.ChatsRoute
 import com.example.petsocial.feature.feed.FeedRoute
 import com.example.petsocial.feature.handlers.HandlerProfileRoute
@@ -27,7 +34,6 @@ import com.example.petsocial.feature.matching.MatchingRoute
 import com.example.petsocial.feature.pets.PetsRoute
 import com.example.petsocial.feature.profile.ProfileRoute
 import com.example.petsocial.feature.routine.RoutineRoute
-import com.example.petsocial.core.ui.PetSocialTopBar
 
 fun NavGraphBuilder.mainGraph(
     navController: NavHostController,
@@ -35,67 +41,22 @@ fun NavGraphBuilder.mainGraph(
     onCreateHandlerProfileClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
-    composable(AppRoutes.Profile) {
-        MainScaffold(
-            navController = navController,
-            isHandler = isHandlerState.value,
-            onCreateHandlerProfileClick = onCreateHandlerProfileClick,
-            onLogoutClick = onLogoutClick
-        )
-    }
-
-    composable(AppRoutes.Pets) {
-        MainScaffold(
-            navController = navController,
-            isHandler = isHandlerState.value,
-            onCreateHandlerProfileClick = onCreateHandlerProfileClick,
-            onLogoutClick = onLogoutClick
-        )
-    }
-
-    composable(AppRoutes.Matching) {
-        MainScaffold(
-            navController = navController,
-            isHandler = isHandlerState.value,
-            onCreateHandlerProfileClick = onCreateHandlerProfileClick,
-            onLogoutClick = onLogoutClick
-        )
-    }
-
-    composable(AppRoutes.Chats) {
-        MainScaffold(
-            navController = navController,
-            isHandler = isHandlerState.value,
-            onCreateHandlerProfileClick = onCreateHandlerProfileClick,
-            onLogoutClick = onLogoutClick
-        )
-    }
-
-    composable(AppRoutes.Routine) {
-        MainScaffold(
-            navController = navController,
-            isHandler = isHandlerState.value,
-            onCreateHandlerProfileClick = onCreateHandlerProfileClick,
-            onLogoutClick = onLogoutClick
-        )
-    }
-
-    composable(AppRoutes.Feed) {
-        MainScaffold(
-            navController = navController,
-            isHandler = isHandlerState.value,
-            onCreateHandlerProfileClick = onCreateHandlerProfileClick,
-            onLogoutClick = onLogoutClick
-        )
-    }
-
-    composable(AppRoutes.Handlers) {
-        MainScaffold(
-            navController = navController,
-            isHandler = isHandlerState.value,
-            onCreateHandlerProfileClick = onCreateHandlerProfileClick,
-            onLogoutClick = onLogoutClick
-        )
+    listOf(
+        AppRoutes.Profile,
+        AppRoutes.Feed,
+        AppRoutes.Matching,
+        AppRoutes.Chats,
+        AppRoutes.Care,
+        AppRoutes.Handlers
+    ).forEach { route ->
+        composable(route) {
+            MainScaffold(
+                navController = navController,
+                isHandler = isHandlerState.value,
+                onCreateHandlerProfileClick = onCreateHandlerProfileClick,
+                onLogoutClick = onLogoutClick
+            )
+        }
     }
 }
 
@@ -111,19 +72,9 @@ private fun MainScaffold(
         ?.destination
         ?.route
 
-    val title = when (currentRoute) {
-        AppRoutes.Profile -> "Профиль"
-        AppRoutes.Pets -> "Питомцы"
-        AppRoutes.Matching -> "Matching"
-        AppRoutes.Chats -> "Чаты"
-        AppRoutes.Routine -> "Routine"
-        AppRoutes.Feed -> "Feed"
-        AppRoutes.Handlers -> "Услуги"
-        else -> "PetSocial"
-    }
     Scaffold(
         topBar = {
-            PetSocialTopBar(title = title)
+            PetSocialTopBar(title = titleForRoute(currentRoute, isHandler))
         },
         bottomBar = {
             PetSocialBottomBar(navController = navController, isHandler = isHandler)
@@ -137,16 +88,15 @@ private fun MainScaffold(
                     if (isHandler) {
                         HandlerProfileRoute(onLogoutClick = onLogoutClick)
                     } else {
-                        ProfileRoute(
+                        OwnerProfileRoute(
                             onLogoutClick = onLogoutClick,
-                            onUnauthorized = onLogoutClick,
                             onCreateHandlerProfileClick = onCreateHandlerProfileClick
                         )
                     }
                 }
 
-                AppRoutes.Pets -> {
-                    PetsRoute()
+                AppRoutes.Feed -> {
+                    FeedRoute()
                 }
 
                 AppRoutes.Matching -> {
@@ -157,19 +107,81 @@ private fun MainScaffold(
                     ChatsRoute()
                 }
 
-                AppRoutes.Routine -> {
-                    RoutineRoute()
-                }
-
-                AppRoutes.Feed -> {
-                    FeedRoute()
+                AppRoutes.Care -> {
+                    CareRoute()
                 }
 
                 AppRoutes.Handlers -> {
-                    HandlersRoute(isHandler = isHandler)
+                    HandlersRoute(isHandler = true)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun OwnerProfileRoute(
+    onLogoutClick: () -> Unit,
+    onCreateHandlerProfileClick: () -> Unit
+) {
+    var selectedTab by rememberSaveable { mutableStateOf(0) }
+    val tabs = listOf("Профиль", "Питомцы")
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        TabRow(selectedTabIndex = selectedTab) {
+            tabs.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTab == index,
+                    onClick = { selectedTab = index },
+                    text = { Text(title) }
+                )
+            }
+        }
+
+        when (selectedTab) {
+            0 -> ProfileRoute(
+                onLogoutClick = onLogoutClick,
+                onUnauthorized = onLogoutClick,
+                onCreateHandlerProfileClick = onCreateHandlerProfileClick
+            )
+
+            1 -> PetsRoute()
+        }
+    }
+}
+
+@Composable
+private fun CareRoute() {
+    var selectedTab by rememberSaveable { mutableStateOf(0) }
+    val tabs = listOf("Рутина", "Хэндлеры")
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        TabRow(selectedTabIndex = selectedTab) {
+            tabs.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTab == index,
+                    onClick = { selectedTab = index },
+                    text = { Text(title) }
+                )
+            }
+        }
+
+        when (selectedTab) {
+            0 -> RoutineRoute()
+            1 -> HandlersRoute(isHandler = false)
+        }
+    }
+}
+
+private fun titleForRoute(route: String?, isHandler: Boolean): String {
+    return when (route) {
+        AppRoutes.Profile -> "Профиль"
+        AppRoutes.Feed -> "Лента"
+        AppRoutes.Matching -> "Знакомства"
+        AppRoutes.Chats -> "Чаты"
+        AppRoutes.Care -> "Уход"
+        AppRoutes.Handlers -> if (isHandler) "Работа" else "Услуги"
+        else -> "PetSocial"
     }
 }
 
@@ -182,33 +194,29 @@ private fun PetSocialBottomBar(
     val currentDestination = navBackStackEntry?.destination
 
     NavigationBar {
-        bottomNavItems
-            .filter { item ->
-                !isHandler || item.route !in setOf(AppRoutes.Pets, AppRoutes.Matching, AppRoutes.Routine)
-            }
-            .forEach { item ->
-                NavigationBarItem(
-                    selected = currentDestination.isSelected(item.route),
-                    onClick = {
-                        navController.navigate(item.route) {
-                            popUpTo(AppRoutes.Profile) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
+        bottomNavItemsFor(isHandler).forEach { item ->
+            NavigationBarItem(
+                selected = currentDestination.isSelected(item.route),
+                onClick = {
+                    navController.navigate(item.route) {
+                        popUpTo(AppRoutes.Profile) {
+                            saveState = true
                         }
-                    },
-                    icon = {
-                        Icon(
-                            imageVector = item.icon,
-                            contentDescription = item.title
-                        )
-                    },
-                    label = {
-                        Text(item.title)
+                        launchSingleTop = true
+                        restoreState = true
                     }
-                )
-            }
+                },
+                icon = {
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = item.title
+                    )
+                },
+                label = {
+                    Text(item.title)
+                }
+            )
+        }
     }
 }
 

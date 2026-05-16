@@ -23,7 +23,6 @@ import androidx.compose.runtime.LaunchedEffect
 import com.example.petsocial.core.ui.FullScreenLoading
 import com.example.petsocial.core.ui.ErrorMessage
 import com.example.petsocial.core.ui.SuccessMessage
-import com.example.petsocial.core.ui.ScreenTitle
 
 
 @Composable
@@ -84,10 +83,6 @@ private fun ProfileScreen(
                     .padding(24.dp),
                 verticalArrangement = Arrangement.Center
             ) {
-                ScreenTitle("Профиль")
-
-                Spacer(modifier = Modifier.height(8.dp))
-
                 Text(
                     text = uiState.email,
                     style = MaterialTheme.typography.bodyMedium

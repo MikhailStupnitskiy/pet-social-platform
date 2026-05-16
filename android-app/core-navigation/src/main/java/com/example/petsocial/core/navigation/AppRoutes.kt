@@ -6,10 +6,9 @@ object AppRoutes {
     const val Auth = "auth"
 
     const val Profile = "profile"
-    const val Pets = "pets"
     const val Matching = "matching"
     const val Chats = "chats"
-    const val Routine = "routine"
+    const val Care = "care"
     const val Feed = "feed"
     const val Handlers = "handlers"
 }
