@@ -4,6 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -22,11 +26,16 @@ fun PetSocialAppRoot(
 ) {
     val navController = rememberNavController()
     val sessionState by sessionViewModel.uiState.collectAsState()
+    var startHandlerRegistration by rememberSaveable { mutableStateOf(false) }
+    val isHandlerState = rememberUpdatedState(
+        newValue = (sessionState as? SessionUiState.Authorized)?.isHandler == true
+    )
 
     LaunchedEffect(Unit) {
         sessionEventsViewModel.sessionEventBus.events.collectLatest { event ->
             when (event) {
                 SessionEvent.Unauthorized -> {
+                    startHandlerRegistration = false
                     sessionViewModel.logout()
                 }
             }
@@ -42,7 +51,7 @@ fun PetSocialAppRoot(
                 }
             }
 
-            SessionUiState.Authorized -> {
+            is SessionUiState.Authorized -> {
                 navController.navigate(AppRoutes.Profile) {
                     popUpTo(0)
                     launchSingleTop = true
@@ -87,20 +96,30 @@ fun PetSocialAppRoot(
                     sessionViewModel.checkSession()
                 },
                 onLogoutClick = {
+                    startHandlerRegistration = false
                     sessionViewModel.logout()
                 }
             )
         }
 
         authGraph(
+            startOnRegister = startHandlerRegistration,
+            registerAsHandler = startHandlerRegistration,
             onAuthSuccess = {
+                startHandlerRegistration = false
                 sessionViewModel.onAuthSuccess()
             }
         )
 
         mainGraph(
             navController = navController,
+            isHandlerState = isHandlerState,
+            onCreateHandlerProfileClick = {
+                startHandlerRegistration = true
+                sessionViewModel.logout()
+            },
             onLogoutClick = {
+                startHandlerRegistration = false
                 sessionViewModel.logout()
             }
         )

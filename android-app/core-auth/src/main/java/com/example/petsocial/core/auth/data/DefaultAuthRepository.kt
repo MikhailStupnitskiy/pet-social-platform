@@ -25,11 +25,12 @@ class DefaultAuthRepository @Inject constructor(
         return response.user
     }
 
-    override suspend fun register(email: String, password: String): UserResponse {
+    override suspend fun register(email: String, password: String, isHandler: Boolean): UserResponse {
         val response = authApi.register(
             RegisterRequest(
                 email = email,
-                password = password
+                password = password,
+                is_handler = isHandler
             )
         )
 

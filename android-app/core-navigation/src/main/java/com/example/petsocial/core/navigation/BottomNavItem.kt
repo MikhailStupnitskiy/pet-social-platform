@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Task
+import androidx.compose.material.icons.filled.Work
 import androidx.compose.ui.graphics.vector.ImageVector
 
 data class BottomNavItem(
@@ -45,5 +46,10 @@ val bottomNavItems = listOf(
         route = AppRoutes.Routine,
         title = "Routine",
         icon = Icons.Default.Task
+    ),
+    BottomNavItem(
+        route = AppRoutes.Handlers,
+        title = "Услуги",
+        icon = Icons.Default.Work
     )
 )

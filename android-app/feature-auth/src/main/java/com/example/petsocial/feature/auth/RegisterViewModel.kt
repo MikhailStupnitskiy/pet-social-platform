@@ -42,6 +42,13 @@ class RegisterViewModel @Inject constructor(
         )
     }
 
+    fun onHandlerChanged(value: Boolean) {
+        _uiState.value = _uiState.value.copy(
+            isHandler = value,
+            errorMessage = null
+        )
+    }
+
     fun onRegisterEventConsumed() {
         _uiState.value = _uiState.value.copy(
             isRegistered = false
@@ -81,7 +88,8 @@ class RegisterViewModel @Inject constructor(
                 val result = safeApiCall {
                     authRepository.register(
                         email = state.email.trim(),
-                        password = state.password
+                        password = state.password,
+                        isHandler = state.isHandler
                     )
                 }
             ) {

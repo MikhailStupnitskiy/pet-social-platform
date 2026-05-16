@@ -18,7 +18,9 @@ import com.example.petsocial.core.common.result.safeApiCall
 sealed interface SessionUiState {
     data object Loading : SessionUiState
     data object AuthRequired : SessionUiState
-    data object Authorized : SessionUiState
+    data class Authorized(
+        val isHandler: Boolean
+    ) : SessionUiState
     data object LoggingOut : SessionUiState
 
     data class Error(
@@ -52,7 +54,9 @@ class SessionViewModel @Inject constructor(
 
             when (val result = safeApiCall { authRepository.getMe() }) {
                 is AppResult.Success -> {
-                    _uiState.value = SessionUiState.Authorized
+                    _uiState.value = SessionUiState.Authorized(
+                        isHandler = result.data.is_handler
+                    )
                 }
 
                 is AppResult.Error -> {

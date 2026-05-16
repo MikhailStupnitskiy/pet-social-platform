@@ -1,6 +1,7 @@
 package com.example.petsocial.feature.auth
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 
@@ -11,10 +12,18 @@ private enum class AuthScreen {
 
 @Composable
 fun AuthRoute(
+    startOnRegister: Boolean = false,
+    registerAsHandler: Boolean = false,
     onAuthSuccess: () -> Unit
 ) {
     val currentScreen = remember {
-        mutableStateOf(AuthScreen.Login)
+        mutableStateOf(if (startOnRegister) AuthScreen.Register else AuthScreen.Login)
+    }
+
+    LaunchedEffect(startOnRegister) {
+        if (startOnRegister) {
+            currentScreen.value = AuthScreen.Register
+        }
     }
 
     when (currentScreen.value) {
@@ -29,6 +38,7 @@ fun AuthRoute(
 
         AuthScreen.Register -> {
             RegisterRoute(
+                registerAsHandler = registerAsHandler,
                 onRegisterSuccess = onAuthSuccess,
                 onLoginClick = {
                     currentScreen.value = AuthScreen.Login

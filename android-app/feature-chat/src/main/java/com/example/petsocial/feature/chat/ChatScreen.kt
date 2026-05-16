@@ -114,7 +114,7 @@ private fun ChatsListScreen(
 
         if (uiState.chats.isEmpty()) {
             item {
-                Text("Пока нет чатов. Чат появится после match.")
+                Text("Пока нет чатов")
             }
         } else {
             items(uiState.chats) { chat ->
@@ -144,9 +144,15 @@ private fun ChatCard(
             ScreenTitle("Чат")
 
             Text("ID: ${chat.id}")
-            Text("Match: ${chat.match_id}")
-            Text("Pet 1: ${chat.pet1_id}")
-            Text("Pet 2: ${chat.pet2_id}")
+            if (chat.service_request_id != null) {
+                Text("Заявка: ${chat.service_request_id}")
+                Text("Клиент: ${chat.client_user_id.orEmpty()}")
+                Text("Хэндлер: ${chat.handler_user_id.orEmpty()}")
+            } else {
+                Text("Match: ${chat.match_id.orEmpty()}")
+                Text("Pet 1: ${chat.pet1_id}")
+                Text("Pet 2: ${chat.pet2_id.orEmpty()}")
+            }
             Text("Создан: ${chat.created_at}")
         }
     }

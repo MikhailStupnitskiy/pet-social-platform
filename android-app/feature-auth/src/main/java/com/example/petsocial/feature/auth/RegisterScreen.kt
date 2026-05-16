@@ -8,11 +8,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -25,6 +27,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
 fun RegisterRoute(
+    registerAsHandler: Boolean = false,
     onRegisterSuccess: () -> Unit,
     onLoginClick: () -> Unit,
     viewModel: RegisterViewModel = hiltViewModel()
@@ -38,11 +41,18 @@ fun RegisterRoute(
         }
     }
 
+    LaunchedEffect(registerAsHandler) {
+        if (registerAsHandler) {
+            viewModel.onHandlerChanged(true)
+        }
+    }
+
     RegisterScreen(
         uiState = uiState,
         onEmailChanged = viewModel::onEmailChanged,
         onPasswordChanged = viewModel::onPasswordChanged,
         onRepeatedPasswordChanged = viewModel::onRepeatedPasswordChanged,
+        onHandlerChanged = viewModel::onHandlerChanged,
         onRegisterClick = viewModel::register,
         onLoginClick = onLoginClick
     )
@@ -54,6 +64,7 @@ private fun RegisterScreen(
     onEmailChanged: (String) -> Unit,
     onPasswordChanged: (String) -> Unit,
     onRepeatedPasswordChanged: (String) -> Unit,
+    onHandlerChanged: (Boolean) -> Unit,
     onRegisterClick: () -> Unit,
     onLoginClick: () -> Unit
 ) {
@@ -109,6 +120,20 @@ private fun RegisterScreen(
             enabled = !uiState.isLoading,
             visualTransformation = PasswordVisualTransformation()
         )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = uiState.isHandler,
+                onCheckedChange = onHandlerChanged,
+                enabled = !uiState.isLoading
+            )
+            Text("Зарегистрироваться как хэндлер")
+        }
 
         if (uiState.errorMessage != null) {
             Spacer(modifier = Modifier.height(12.dp))

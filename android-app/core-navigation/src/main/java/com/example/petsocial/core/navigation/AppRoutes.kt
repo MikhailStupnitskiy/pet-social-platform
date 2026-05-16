@@ -11,4 +11,5 @@ object AppRoutes {
     const val Chats = "chats"
     const val Routine = "routine"
     const val Feed = "feed"
+    const val Handlers = "handlers"
 }

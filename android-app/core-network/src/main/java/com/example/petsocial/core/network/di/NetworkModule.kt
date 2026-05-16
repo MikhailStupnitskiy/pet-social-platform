@@ -16,6 +16,7 @@ import com.example.petsocial.core.network.api.PetsApi
 import com.example.petsocial.core.network.api.MatchingApi
 import com.example.petsocial.core.network.api.ChatsApi
 import com.example.petsocial.core.network.api.FeedApi
+import com.example.petsocial.core.network.api.HandlersApi
 import com.example.petsocial.core.network.api.RoutineApi
 import javax.inject.Singleton
 
@@ -94,5 +95,11 @@ object NetworkModule {
     @Singleton
     fun provideFeedApi(retrofit: Retrofit): FeedApi {
         return retrofit.create(FeedApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideHandlersApi(retrofit: Retrofit): HandlersApi {
+        return retrofit.create(HandlersApi::class.java)
     }
 }

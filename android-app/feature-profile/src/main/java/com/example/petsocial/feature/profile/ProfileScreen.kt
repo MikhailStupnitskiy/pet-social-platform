@@ -30,6 +30,7 @@ import com.example.petsocial.core.ui.ScreenTitle
 fun ProfileRoute(
     onLogoutClick: () -> Unit,
     onUnauthorized: () -> Unit,
+    onCreateHandlerProfileClick: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -53,7 +54,8 @@ fun ProfileRoute(
         onAvatarUrlChanged = viewModel::onAvatarUrlChanged,
         onSaveClick = viewModel::saveProfile,
         onRetryClick = viewModel::loadProfile,
-        onLogoutClick = onLogoutClick
+        onLogoutClick = onLogoutClick,
+        onCreateHandlerProfileClick = onCreateHandlerProfileClick
     )
 }
 
@@ -67,7 +69,8 @@ private fun ProfileScreen(
     onAvatarUrlChanged: (String) -> Unit,
     onSaveClick: () -> Unit,
     onRetryClick: () -> Unit,
-    onLogoutClick: () -> Unit
+    onLogoutClick: () -> Unit,
+    onCreateHandlerProfileClick: () -> Unit
 ) {
     when {
         uiState.isLoading -> {
@@ -179,6 +182,16 @@ private fun ProfileScreen(
                     } else {
                         Text("Сохранить")
                     }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                    onClick = onCreateHandlerProfileClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !uiState.isSaving
+                ) {
+                    Text("Создать профиль хэндлера")
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
