@@ -7,5 +7,13 @@ data class CreatePetRequest(
     val sex: String? = null,
     val birth_date: String? = null,
     val weight_kg: String? = null,
-    val bio: String? = null
+    val bio: String? = null,
+    val photo_url: String? = null,
+    val personality_tags: List<String> = emptyList(),
+    val interests: List<String> = emptyList(),
+    val health_notes: String? = null,
+    val matching_goal: String? = null,
+    val search_radius_meters: Int? = null,
+    val latitude: String? = null,
+    val longitude: String? = null
 )

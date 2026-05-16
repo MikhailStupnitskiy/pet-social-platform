@@ -2,14 +2,19 @@ package com.example.petsocial.feature.handlers
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -25,13 +30,23 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.petsocial.core.designsystem.component.ChipTone
+import com.example.petsocial.core.designsystem.component.PetAvatar
+import com.example.petsocial.core.designsystem.component.ProductCard
+import com.example.petsocial.core.designsystem.component.SectionHeader
+import com.example.petsocial.core.designsystem.component.StatusChip
+import com.example.petsocial.core.designsystem.theme.PetBackground
+import com.example.petsocial.core.designsystem.theme.PetPrimary
+import com.example.petsocial.core.designsystem.theme.PetTextSecondary
 import com.example.petsocial.core.network.model.handlers.HandlerProfileResponse
 import com.example.petsocial.core.network.model.handlers.HandlerServiceResponse
 import com.example.petsocial.core.network.model.handlers.ServiceRequestResponse
 import com.example.petsocial.core.ui.FullScreenLoading
-import com.example.petsocial.core.ui.SectionTitle
 
 @Composable
 fun HandlersRoute(
@@ -156,9 +171,15 @@ private fun HandlersScreen(
     }
     val effectiveTab = if (tabs.isEmpty()) 0 else uiState.selectedTab.coerceIn(0, tabs.lastIndex)
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
         if (!profileOnly) {
-            TabRow(selectedTabIndex = effectiveTab) {
+            TabRow(
+                selectedTabIndex = effectiveTab,
+                containerColor = PetBackground,
+                contentColor = PetPrimary
+            ) {
                 tabs.forEachIndexed { index, title ->
                     Tab(
                         selected = effectiveTab == index,
@@ -177,21 +198,24 @@ private fun HandlersScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = 16.dp),
+            contentPadding = PaddingValues(top = 20.dp, bottom = 112.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             uiState.errorMessage?.let { message ->
                 item {
-                    Text(message, color = MaterialTheme.colorScheme.error)
-                    Button(onClick = onRetryClick) {
-                        Text("Повторить")
+                    ProductCard(modifier = Modifier.fillMaxWidth()) {
+                        Text(message, color = MaterialTheme.colorScheme.error)
+                        Button(onClick = onRetryClick) {
+                            Text("Повторить")
+                        }
                     }
                 }
             }
 
             uiState.successMessage?.let { message ->
                 item {
-                    Text(message, color = MaterialTheme.colorScheme.primary)
+                    StatusChip(label = message, tone = ChipTone.Secondary)
                 }
             }
 
@@ -207,11 +231,12 @@ private fun HandlersScreen(
                         onProfileActiveChanged = onProfileActiveChanged,
                         onSaveProfileClick = onSaveProfileClick
                     )
-                    if (onLogoutClick != null) {
+                    onLogoutClick?.let { logout ->
                         item {
                             Button(
-                                onClick = onLogoutClick,
-                                modifier = Modifier.fillMaxWidth()
+                                onClick = logout,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = PetPrimary)
                             ) {
                                 Text("Выйти")
                             }
@@ -219,10 +244,7 @@ private fun HandlersScreen(
                     }
                 }
 
-                isHandler && effectiveTab == 0 -> handlerRequestsContent(
-                    uiState = uiState,
-                    onStatusClick = onStatusClick
-                )
+                isHandler && effectiveTab == 0 -> handlerRequestsContent(uiState, onStatusClick)
 
                 isHandler && effectiveTab == 1 -> handlerServicesContent(
                     uiState = uiState,
@@ -262,7 +284,7 @@ private fun HandlersScreen(
     }
 }
 
-private fun androidx.compose.foundation.lazy.LazyListScope.searchContent(
+private fun LazyListScope.searchContent(
     uiState: HandlersUiState,
     onSearchClick: () -> Unit,
     onCityFilterChanged: (String) -> Unit,
@@ -275,34 +297,46 @@ private fun androidx.compose.foundation.lazy.LazyListScope.searchContent(
     onCreateRequestClick: () -> Unit
 ) {
     item {
-        SectionTitle("Поиск хэндлеров")
-        OutlinedTextField(
-            value = uiState.cityFilter,
-            onValueChange = onCityFilterChanged,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Город") },
-            singleLine = true
-        )
-        OutlinedTextField(
-            value = uiState.serviceTypeFilter,
-            onValueChange = onServiceTypeFilterChanged,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Тип услуги: walking/sitting/training/grooming/other") },
-            singleLine = true
-        )
-        OutlinedTextField(
-            value = uiState.minRatingFilter,
-            onValueChange = onMinRatingFilterChanged,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Минимальный рейтинг") },
-            singleLine = true
-        )
-        Button(onClick = onSearchClick, modifier = Modifier.fillMaxWidth()) {
-            Text("Найти")
+        SectionHeader(title = "Найти услугу")
+    }
+    item {
+        ProductCard(modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = uiState.cityFilter,
+                onValueChange = onCityFilterChanged,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Город") },
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp)
+            )
+            OutlinedTextField(
+                value = uiState.serviceTypeFilter,
+                onValueChange = onServiceTypeFilterChanged,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Тип услуги") },
+                placeholder = { Text("walking, sitting, grooming") },
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp)
+            )
+            OutlinedTextField(
+                value = uiState.minRatingFilter,
+                onValueChange = onMinRatingFilterChanged,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Минимальный рейтинг") },
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp)
+            )
+            Button(
+                onClick = onSearchClick,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = PetPrimary)
+            ) {
+                Text("Найти")
+            }
         }
     }
 
-    if (uiState.selectedService != null) {
+    uiState.selectedService?.let {
         item {
             RequestForm(
                 uiState = uiState,
@@ -314,18 +348,25 @@ private fun androidx.compose.foundation.lazy.LazyListScope.searchContent(
         }
     }
 
+    item {
+        SectionHeader(title = "Специалисты рядом")
+    }
+
     if (uiState.handlers.isEmpty()) {
         item {
-            Text("Подходящие хэндлеры не найдены")
+            EmptyCard(
+                title = "Подходящих услуг пока нет",
+                text = "Попробуйте изменить город, тип услуги или рейтинг."
+            )
         }
     } else {
-        items(uiState.handlers) { profile ->
+        items(uiState.handlers, key = { it.user_id }) { profile ->
             HandlerCard(profile = profile, onServiceSelected = onServiceSelected)
         }
     }
 }
 
-private fun androidx.compose.foundation.lazy.LazyListScope.requestsContent(
+private fun LazyListScope.requestsContent(
     uiState: HandlersUiState,
     onStatusClick: (String, String) -> Unit,
     onStartReviewClick: (ServiceRequestResponse) -> Unit,
@@ -334,15 +375,18 @@ private fun androidx.compose.foundation.lazy.LazyListScope.requestsContent(
     onSubmitReviewClick: () -> Unit
 ) {
     item {
-        SectionTitle("Мои заявки")
+        SectionHeader(title = "Мои заявки")
     }
 
     if (uiState.clientRequests.isEmpty()) {
         item {
-            Text("Заявок пока нет")
+            EmptyCard(
+                title = "Заявок пока нет",
+                text = "Когда вы оформите услугу, она появится здесь."
+            )
         }
     } else {
-        items(uiState.clientRequests) { request ->
+        items(uiState.clientRequests, key = { it.id }) { request ->
             RequestCard(
                 request = request,
                 role = "client",
@@ -355,39 +399,37 @@ private fun androidx.compose.foundation.lazy.LazyListScope.requestsContent(
 
     if (uiState.reviewRequestId != null) {
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+            ProductCard(modifier = Modifier.fillMaxWidth()) {
+                Text("Оставить отзыв", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                OutlinedTextField(
+                    value = uiState.reviewRating,
+                    onValueChange = onReviewRatingChanged,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Оценка 1-5") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp)
+                )
+                OutlinedTextField(
+                    value = uiState.reviewBody,
+                    onValueChange = onReviewBodyChanged,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Комментарий") },
+                    shape = RoundedCornerShape(16.dp)
+                )
+                Button(
+                    onClick = onSubmitReviewClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !uiState.isSubmitting,
+                    colors = ButtonDefaults.buttonColors(containerColor = PetPrimary)
                 ) {
-                    Text("Отзыв по заявке", style = MaterialTheme.typography.titleMedium)
-                    OutlinedTextField(
-                        value = uiState.reviewRating,
-                        onValueChange = onReviewRatingChanged,
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Оценка 1-5") },
-                        singleLine = true
-                    )
-                    OutlinedTextField(
-                        value = uiState.reviewBody,
-                        onValueChange = onReviewBodyChanged,
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Комментарий") }
-                    )
-                    Button(
-                        onClick = onSubmitReviewClick,
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !uiState.isSubmitting
-                    ) {
-                        Text("Отправить отзыв")
-                    }
+                    Text("Отправить отзыв")
                 }
             }
         }
     }
 }
 
-private fun androidx.compose.foundation.lazy.LazyListScope.handlerProfileContent(
+private fun LazyListScope.handlerProfileContent(
     uiState: HandlersUiState,
     onProfileDisplayNameChanged: (String) -> Unit,
     onProfileCityChanged: (String) -> Unit,
@@ -398,26 +440,30 @@ private fun androidx.compose.foundation.lazy.LazyListScope.handlerProfileContent
     onSaveProfileClick: () -> Unit
 ) {
     item {
-        SectionTitle("Профиль хэндлера")
-        ProfileForm(
-            uiState = uiState,
-            onProfileDisplayNameChanged = onProfileDisplayNameChanged,
-            onProfileCityChanged = onProfileCityChanged,
-            onProfileBioChanged = onProfileBioChanged,
-            onProfileExperienceChanged = onProfileExperienceChanged,
-            onProfileConditionsChanged = onProfileConditionsChanged,
-            onProfileActiveChanged = onProfileActiveChanged,
-            onSaveProfileClick = onSaveProfileClick
-        )
+        SectionHeader(title = "Профиль специалиста")
+    }
+    item {
+        ProductCard(modifier = Modifier.fillMaxWidth()) {
+            ProfileForm(
+                uiState = uiState,
+                onProfileDisplayNameChanged = onProfileDisplayNameChanged,
+                onProfileCityChanged = onProfileCityChanged,
+                onProfileBioChanged = onProfileBioChanged,
+                onProfileExperienceChanged = onProfileExperienceChanged,
+                onProfileConditionsChanged = onProfileConditionsChanged,
+                onProfileActiveChanged = onProfileActiveChanged,
+                onSaveProfileClick = onSaveProfileClick
+            )
+        }
     }
 }
 
-private fun androidx.compose.foundation.lazy.LazyListScope.handlerRequestsContent(
+private fun LazyListScope.handlerRequestsContent(
     uiState: HandlersUiState,
     onStatusClick: (String, String) -> Unit
 ) {
     item {
-        SectionTitle("Заявки на услуги")
+        SectionHeader(title = "Заявки на услуги")
     }
 
     val activeRequests = uiState.handlerRequests.filter { request ->
@@ -425,10 +471,13 @@ private fun androidx.compose.foundation.lazy.LazyListScope.handlerRequestsConten
     }
     if (activeRequests.isEmpty()) {
         item {
-            Text("Входящих и принятых заявок пока нет")
+            EmptyCard(
+                title = "Активных заявок пока нет",
+                text = "Новые обращения появятся в этом разделе."
+            )
         }
     } else {
-        items(activeRequests) { request ->
+        items(activeRequests, key = { it.id }) { request ->
             RequestCard(
                 request = request,
                 role = "handler",
@@ -440,7 +489,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.handlerRequestsConten
     }
 }
 
-private fun androidx.compose.foundation.lazy.LazyListScope.handlerServicesContent(
+private fun LazyListScope.handlerServicesContent(
     uiState: HandlersUiState,
     onServiceTypeChanged: (String) -> Unit,
     onServiceTitleChanged: (String) -> Unit,
@@ -453,32 +502,42 @@ private fun androidx.compose.foundation.lazy.LazyListScope.handlerServicesConten
 ) {
     if (uiState.myProfile == null) {
         item {
-            Text("Сначала заполните профиль хэндлера во вкладке Профиль")
+            EmptyCard(
+                title = "Заполните профиль специалиста",
+                text = "После этого можно будет добавить услуги и принимать заявки."
+            )
         }
         return
     }
 
     item {
-        SectionTitle("Мои услуги")
-        ServiceForm(
-            uiState = uiState,
-            onServiceTypeChanged = onServiceTypeChanged,
-            onServiceTitleChanged = onServiceTitleChanged,
-            onServiceDescriptionChanged = onServiceDescriptionChanged,
-            onServicePriceChanged = onServicePriceChanged,
-            onServiceDurationChanged = onServiceDurationChanged,
-            onServiceActiveChanged = onServiceActiveChanged,
-            onCreateServiceClick = onCreateServiceClick
-        )
+        SectionHeader(title = "Мои услуги")
+    }
+    item {
+        ProductCard(modifier = Modifier.fillMaxWidth()) {
+            ServiceForm(
+                uiState = uiState,
+                onServiceTypeChanged = onServiceTypeChanged,
+                onServiceTitleChanged = onServiceTitleChanged,
+                onServiceDescriptionChanged = onServiceDescriptionChanged,
+                onServicePriceChanged = onServicePriceChanged,
+                onServiceDurationChanged = onServiceDurationChanged,
+                onServiceActiveChanged = onServiceActiveChanged,
+                onCreateServiceClick = onCreateServiceClick
+            )
+        }
     }
 
     val activeServices = uiState.myProfile.services.filter { service -> service.is_active }
     if (activeServices.isEmpty()) {
         item {
-            Text("Активных услуг пока нет")
+            EmptyCard(
+                title = "Активных услуг пока нет",
+                text = "Добавьте прогулку, передержку или груминг, чтобы клиенты могли записаться."
+            )
         }
     } else {
-        items(activeServices) { service ->
+        items(activeServices, key = { it.id }) { service ->
             ServiceCard(service = service, onDeleteServiceClick = onDeleteServiceClick)
         }
     }
@@ -489,31 +548,86 @@ private fun HandlerCard(
     profile: HandlerProfileResponse,
     onServiceSelected: (HandlerServiceResponse) -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+    ProductCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(profile.display_name, style = MaterialTheme.typography.titleMedium)
-            Text("Город: ${profile.city ?: "не указан"}")
-            Text("Опыт: ${profile.experience_years} лет")
-            Text("Рейтинг: ${profile.rating_avg} (${profile.reviews_count})")
-            profile.bio?.takeIf { it.isNotBlank() }?.let { bio ->
-                Text(bio)
+            PetAvatar(
+                imageUrl = profile.avatar_url,
+                contentDescription = profile.display_name,
+                size = 56.dp
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = profile.display_name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = profile.city ?: "Город не указан",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = PetTextSecondary
+                )
             }
-            if (!profile.conditions.isNullOrBlank()) {
-                Text("Условия: ${profile.conditions}")
+            StatusChip(
+                label = "${profile.rating_avg} (${profile.reviews_count})",
+                tone = ChipTone.Info
+            )
+        }
+
+        Text(
+            text = "${profile.experience_years} лет опыта",
+            style = MaterialTheme.typography.bodyMedium,
+            color = PetTextSecondary
+        )
+        profile.bio?.takeIf { it.isNotBlank() }?.let { bio ->
+            Text(bio, style = MaterialTheme.typography.bodyMedium)
+        }
+        profile.conditions?.takeIf { it.isNotBlank() }?.let { conditions ->
+            Text("Условия: $conditions", style = MaterialTheme.typography.bodyMedium, color = PetTextSecondary)
+        }
+
+        profile.services.forEachIndexed { index, service ->
+            if (index > 0) {
+                HorizontalDivider()
             }
-            HorizontalDivider()
-            profile.services.forEach { service ->
-                Text("${service.title} - ${service.service_type} - ${formatPrice(service.price_cents)}")
-                service.description?.takeIf { it.isNotBlank() }?.let { description ->
-                    Text(description)
-                }
-                Button(onClick = { onServiceSelected(service) }) {
-                    Text("Оформить заявку")
-                }
+            ServiceRow(service = service, onServiceSelected = onServiceSelected)
+        }
+    }
+}
+
+@Composable
+private fun ServiceRow(
+    service: HandlerServiceResponse,
+    onServiceSelected: (HandlerServiceResponse) -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(service.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Text(serviceTypeLabel(service.service_type), color = PetTextSecondary, style = MaterialTheme.typography.bodySmall)
             }
+            Text(formatPrice(service.price_cents), style = MaterialTheme.typography.titleSmall, color = PetPrimary)
+        }
+        service.description?.takeIf { it.isNotBlank() }?.let { description ->
+            Text(description, style = MaterialTheme.typography.bodyMedium)
+        }
+        Button(
+            onClick = { onServiceSelected(service) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = PetPrimary)
+        ) {
+            Text("Оформить заявку")
         }
     }
 }
@@ -526,43 +640,56 @@ private fun RequestForm(
     onRequestCommentChanged: (String) -> Unit,
     onCreateRequestClick: () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+    ProductCard(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Новая заявка",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        Text(
+            text = uiState.selectedService?.title.orEmpty(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = PetTextSecondary
+        )
+        Text(
+            text = "Питомец: ${uiState.activePet?.name ?: "не выбран"}",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        OutlinedTextField(
+            value = uiState.requestDate,
+            onValueChange = onRequestDateChanged,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Дата") },
+            placeholder = { Text("YYYY-MM-DD") },
+            singleLine = true,
+            shape = RoundedCornerShape(16.dp)
+        )
+        OutlinedTextField(
+            value = uiState.requestTime,
+            onValueChange = onRequestTimeChanged,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Время") },
+            placeholder = { Text("HH:MM") },
+            singleLine = true,
+            shape = RoundedCornerShape(16.dp)
+        )
+        OutlinedTextField(
+            value = uiState.requestComment,
+            onValueChange = onRequestCommentChanged,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Комментарий") },
+            shape = RoundedCornerShape(16.dp)
+        )
+        Button(
+            onClick = onCreateRequestClick,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !uiState.isSubmitting,
+            colors = ButtonDefaults.buttonColors(containerColor = PetPrimary)
         ) {
-            Text("Новая заявка: ${uiState.selectedService?.title.orEmpty()}", style = MaterialTheme.typography.titleMedium)
-            Text("Питомец: ${uiState.activePet?.name ?: "не выбран"}")
-            OutlinedTextField(
-                value = uiState.requestDate,
-                onValueChange = onRequestDateChanged,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Дата YYYY-MM-DD") },
-                singleLine = true
-            )
-            OutlinedTextField(
-                value = uiState.requestTime,
-                onValueChange = onRequestTimeChanged,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Время HH:MM") },
-                singleLine = true
-            )
-            OutlinedTextField(
-                value = uiState.requestComment,
-                onValueChange = onRequestCommentChanged,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Комментарий") }
-            )
-            Button(
-                onClick = onCreateRequestClick,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isSubmitting
-            ) {
-                if (uiState.isSubmitting) {
-                    CircularProgressIndicator()
-                } else {
-                    Text("Создать заявку")
-                }
+            if (uiState.isSubmitting) {
+                CircularProgressIndicator(color = Color.White)
+            } else {
+                Text("Создать заявку")
             }
         }
     }
@@ -584,34 +711,39 @@ private fun ProfileForm(
             value = uiState.profileDisplayName,
             onValueChange = onProfileDisplayNameChanged,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Имя хэндлера") },
-            singleLine = true
+            label = { Text("Имя специалиста") },
+            singleLine = true,
+            shape = RoundedCornerShape(16.dp)
         )
         OutlinedTextField(
             value = uiState.profileCity,
             onValueChange = onProfileCityChanged,
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Город") },
-            singleLine = true
+            singleLine = true,
+            shape = RoundedCornerShape(16.dp)
         )
         OutlinedTextField(
             value = uiState.profileExperienceYears,
             onValueChange = onProfileExperienceChanged,
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Опыт, лет") },
-            singleLine = true
+            singleLine = true,
+            shape = RoundedCornerShape(16.dp)
         )
         OutlinedTextField(
             value = uiState.profileBio,
             onValueChange = onProfileBioChanged,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Описание") }
+            label = { Text("Описание") },
+            shape = RoundedCornerShape(16.dp)
         )
         OutlinedTextField(
             value = uiState.profileConditions,
             onValueChange = onProfileConditionsChanged,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Условия") }
+            label = { Text("Условия") },
+            shape = RoundedCornerShape(16.dp)
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -624,7 +756,8 @@ private fun ProfileForm(
         Button(
             onClick = onSaveProfileClick,
             modifier = Modifier.fillMaxWidth(),
-            enabled = !uiState.isSaving
+            enabled = !uiState.isSaving,
+            colors = ButtonDefaults.buttonColors(containerColor = PetPrimary)
         ) {
             Text("Сохранить профиль")
         }
@@ -648,34 +781,40 @@ private fun ServiceForm(
             onValueChange = onServiceTypeChanged,
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Тип услуги") },
-            singleLine = true
+            placeholder = { Text("walking, sitting, grooming") },
+            singleLine = true,
+            shape = RoundedCornerShape(16.dp)
         )
         OutlinedTextField(
             value = uiState.serviceTitle,
             onValueChange = onServiceTitleChanged,
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Название") },
-            singleLine = true
+            singleLine = true,
+            shape = RoundedCornerShape(16.dp)
         )
         OutlinedTextField(
             value = uiState.servicePriceRub,
             onValueChange = onServicePriceChanged,
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Цена, руб.") },
-            singleLine = true
+            singleLine = true,
+            shape = RoundedCornerShape(16.dp)
         )
         OutlinedTextField(
             value = uiState.serviceDurationMinutes,
             onValueChange = onServiceDurationChanged,
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Длительность, минут") },
-            singleLine = true
+            singleLine = true,
+            shape = RoundedCornerShape(16.dp)
         )
         OutlinedTextField(
             value = uiState.serviceDescription,
             onValueChange = onServiceDescriptionChanged,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Описание") }
+            label = { Text("Описание") },
+            shape = RoundedCornerShape(16.dp)
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -688,7 +827,8 @@ private fun ServiceForm(
         Button(
             onClick = onCreateServiceClick,
             modifier = Modifier.fillMaxWidth(),
-            enabled = !uiState.isSaving
+            enabled = !uiState.isSaving,
+            colors = ButtonDefaults.buttonColors(containerColor = PetPrimary)
         ) {
             Text("Добавить услугу")
         }
@@ -700,17 +840,24 @@ private fun ServiceCard(
     service: HandlerServiceResponse,
     onDeleteServiceClick: (String) -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+    ProductCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
         ) {
-            Text(service.title, style = MaterialTheme.typography.titleMedium)
-            Text("${service.service_type} - ${formatPrice(service.price_cents)}")
-            Text(if (service.is_active) "Активна" else "Отключена")
-            TextButton(onClick = { onDeleteServiceClick(service.id) }) {
-                Text("Отключить")
+            Column(modifier = Modifier.weight(1f)) {
+                Text(service.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(serviceTypeLabel(service.service_type), color = PetTextSecondary)
             }
+            StatusChip(
+                label = if (service.is_active) "Активна" else "Отключена",
+                tone = if (service.is_active) ChipTone.Secondary else ChipTone.Neutral
+            )
+        }
+        Text(formatPrice(service.price_cents), style = MaterialTheme.typography.titleMedium, color = PetPrimary)
+        TextButton(onClick = { onDeleteServiceClick(service.id) }) {
+            Text("Отключить", color = PetPrimary)
         }
     }
 }
@@ -723,68 +870,112 @@ private fun RequestCard(
     onStatusClick: (String, String) -> Unit,
     onStartReviewClick: (ServiceRequestResponse) -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+    ProductCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
         ) {
-            Text(request.service_title, style = MaterialTheme.typography.titleMedium)
-            Text("Статус: ${request.status}")
-            Text("Питомец: ${request.pet_name}")
-            Text("Дата и время: ${request.requested_date} ${request.requested_time}")
-            Text("Клиент: ${request.client_name.ifBlank { request.client_user_id }}")
-            Text("Хэндлер: ${request.handler_name}")
-            if (!request.comment.isNullOrBlank()) {
-                Text("Комментарий: ${request.comment}")
+            Column(modifier = Modifier.weight(1f)) {
+                Text(request.service_title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text("${request.requested_date} ${request.requested_time}", color = PetTextSecondary)
             }
-            request.review?.let { review ->
-                Text("Отзыв: ${review.rating}/5 ${review.body.orEmpty()}")
-            }
+            StatusChip(label = statusLabel(request.status), tone = statusTone(request.status))
+        }
+        Text("Питомец: ${request.pet_name}")
+        Text("Клиент: ${request.client_name.ifBlank { request.client_user_id }}")
+        Text("Специалист: ${request.handler_name}")
+        request.comment?.takeIf { it.isNotBlank() }?.let { comment ->
+            Text("Комментарий: $comment", color = PetTextSecondary)
+        }
+        request.review?.let { review ->
+            Text("Отзыв: ${review.rating}/5 ${review.body.orEmpty()}")
+        }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (role == "client" && (request.status == "pending" || request.status == "accepted")) {
-                    TextButton(
-                        onClick = { onStatusClick(request.id, "cancelled") },
-                        enabled = !isSubmitting
-                    ) {
-                        Text("Отменить")
-                    }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (role == "client" && (request.status == "pending" || request.status == "accepted")) {
+                TextButton(
+                    onClick = { onStatusClick(request.id, "cancelled") },
+                    enabled = !isSubmitting
+                ) {
+                    Text("Отменить", color = PetPrimary)
                 }
-                if (role == "client" && request.status == "completed" && request.review == null) {
-                    TextButton(
-                        onClick = { onStartReviewClick(request) },
-                        enabled = !isSubmitting
-                    ) {
-                        Text("Оставить отзыв")
-                    }
+            }
+            if (role == "client" && request.status == "completed" && request.review == null) {
+                TextButton(
+                    onClick = { onStartReviewClick(request) },
+                    enabled = !isSubmitting
+                ) {
+                    Text("Оставить отзыв", color = PetPrimary)
                 }
-                if (role == "handler" && request.status == "pending") {
-                    TextButton(
-                        onClick = { onStatusClick(request.id, "accepted") },
-                        enabled = !isSubmitting
-                    ) {
-                        Text("Принять")
-                    }
-                    TextButton(
-                        onClick = { onStatusClick(request.id, "rejected") },
-                        enabled = !isSubmitting
-                    ) {
-                        Text("Отклонить")
-                    }
+            }
+            if (role == "handler" && request.status == "pending") {
+                TextButton(
+                    onClick = { onStatusClick(request.id, "accepted") },
+                    enabled = !isSubmitting
+                ) {
+                    Text("Принять", color = PetPrimary)
                 }
-                if (role == "handler" && request.status == "accepted") {
-                    TextButton(
-                        onClick = { onStatusClick(request.id, "completed") },
-                        enabled = !isSubmitting
-                    ) {
-                        Text("Завершить")
-                    }
+                TextButton(
+                    onClick = { onStatusClick(request.id, "rejected") },
+                    enabled = !isSubmitting
+                ) {
+                    Text("Отклонить")
+                }
+            }
+            if (role == "handler" && request.status == "accepted") {
+                TextButton(
+                    onClick = { onStatusClick(request.id, "completed") },
+                    enabled = !isSubmitting
+                ) {
+                    Text("Завершить", color = PetPrimary)
                 }
             }
         }
     }
 }
 
+@Composable
+private fun EmptyCard(
+    title: String,
+    text: String
+) {
+    ProductCard(modifier = Modifier.fillMaxWidth()) {
+        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = PetTextSecondary)
+    }
+}
+
 private fun formatPrice(priceCents: Int): String {
     return "${priceCents / 100} руб."
+}
+
+private fun serviceTypeLabel(type: String): String {
+    return when (type) {
+        "walking" -> "Прогулки"
+        "sitting" -> "Передержка"
+        "training" -> "Тренировки"
+        "grooming" -> "Груминг"
+        else -> "Уход"
+    }
+}
+
+private fun statusLabel(status: String): String {
+    return when (status) {
+        "pending" -> "Новая"
+        "accepted" -> "Принята"
+        "completed" -> "Завершена"
+        "cancelled" -> "Отменена"
+        "rejected" -> "Отклонена"
+        else -> status
+    }
+}
+
+private fun statusTone(status: String): ChipTone {
+    return when (status) {
+        "accepted", "completed" -> ChipTone.Secondary
+        "pending" -> ChipTone.Info
+        "cancelled", "rejected" -> ChipTone.Neutral
+        else -> ChipTone.Primary
+    }
 }

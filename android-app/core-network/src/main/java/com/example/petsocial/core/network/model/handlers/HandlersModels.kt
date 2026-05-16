@@ -5,9 +5,12 @@ data class HandlerProfileResponse(
     val display_name: String,
     val city: String?,
     val bio: String?,
+    val avatar_url: String?,
     val experience_years: Int,
     val conditions: String?,
     val is_active: Boolean,
+    val latitude: String?,
+    val longitude: String?,
     val rating_avg: Double,
     val reviews_count: Int,
     val services: List<HandlerServiceResponse>,
@@ -32,9 +35,12 @@ data class UpsertHandlerProfileRequest(
     val display_name: String,
     val city: String?,
     val bio: String?,
+    val avatar_url: String?,
     val experience_years: Int,
     val conditions: String?,
-    val is_active: Boolean
+    val is_active: Boolean,
+    val latitude: String?,
+    val longitude: String?
 )
 
 data class UpsertHandlerServiceRequest(

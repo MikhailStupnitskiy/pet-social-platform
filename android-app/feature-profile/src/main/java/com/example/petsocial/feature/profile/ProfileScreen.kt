@@ -1,12 +1,16 @@
 package com.example.petsocial.feature.profile
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -14,16 +18,23 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.runtime.LaunchedEffect
-import com.example.petsocial.core.ui.FullScreenLoading
+import com.example.petsocial.core.designsystem.component.PetAvatar
+import com.example.petsocial.core.designsystem.component.ProductCard
+import com.example.petsocial.core.designsystem.component.SectionHeader
+import com.example.petsocial.core.designsystem.theme.PetBackground
+import com.example.petsocial.core.designsystem.theme.PetPrimary
+import com.example.petsocial.core.designsystem.theme.PetTextSecondary
 import com.example.petsocial.core.ui.ErrorMessage
+import com.example.petsocial.core.ui.FullScreenLoading
 import com.example.petsocial.core.ui.SuccessMessage
-
 
 @Composable
 fun ProfileRoute(
@@ -71,101 +82,72 @@ private fun ProfileScreen(
     onLogoutClick: () -> Unit,
     onCreateHandlerProfileClick: () -> Unit
 ) {
-    when {
-        uiState.isLoading -> {
-            FullScreenLoading()
+    if (uiState.isLoading) {
+        FullScreenLoading()
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PetBackground)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(bottom = 20.dp)
+    ) {
+        item { Spacer(modifier = Modifier.height(8.dp)) }
+
+        item {
+            ProductCard(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    PetAvatar(imageUrl = uiState.avatarUrl, contentDescription = uiState.name, size = 88.dp)
+                }
+                Text(
+                    text = uiState.name.ifBlank { "Профиль владельца" },
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = uiState.city.ifBlank { uiState.email },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = PetTextSecondary
+                )
+                if (uiState.bio.isNotBlank()) {
+                    Text(text = uiState.bio, style = MaterialTheme.typography.bodyMedium)
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    ProfileStat("1", "Питомец")
+                    ProfileStat("12", "Мэтчей")
+                    ProfileStat("48", "Постов")
+                }
+            }
         }
 
-        else -> {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = uiState.email,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+        item { SectionHeader(title = "Редактировать профиль") }
 
-                Spacer(modifier = Modifier.height(16.dp))
+        item {
+            ProductCard(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(uiState.name, onNameChanged, Modifier.fillMaxWidth(), label = { Text("Имя") }, singleLine = true, enabled = !uiState.isSaving)
+                OutlinedTextField(uiState.birthDate, onBirthDateChanged, Modifier.fillMaxWidth(), label = { Text("Дата рождения YYYY-MM-DD") }, singleLine = true, enabled = !uiState.isSaving)
+                OutlinedTextField(uiState.city, onCityChanged, Modifier.fillMaxWidth(), label = { Text("Город") }, singleLine = true, enabled = !uiState.isSaving)
+                OutlinedTextField(uiState.bio, onBioChanged, Modifier.fillMaxWidth(), label = { Text("О себе") }, minLines = 2, enabled = !uiState.isSaving)
+                OutlinedTextField(uiState.avatarUrl, onAvatarUrlChanged, Modifier.fillMaxWidth(), label = { Text("Ссылка на аватар") }, singleLine = true, enabled = !uiState.isSaving)
 
-                OutlinedTextField(
-                    value = uiState.name,
-                    onValueChange = onNameChanged,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Имя") },
-                    singleLine = true,
-                    enabled = !uiState.isSaving
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                OutlinedTextField(
-                    value = uiState.birthDate,
-                    onValueChange = onBirthDateChanged,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Дата рождения YYYY-MM-DD") },
-                    singleLine = true,
-                    enabled = !uiState.isSaving
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                OutlinedTextField(
-                    value = uiState.city,
-                    onValueChange = onCityChanged,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Город") },
-                    singleLine = true,
-                    enabled = !uiState.isSaving
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                OutlinedTextField(
-                    value = uiState.bio,
-                    onValueChange = onBioChanged,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("О себе") },
-                    enabled = !uiState.isSaving
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                OutlinedTextField(
-                    value = uiState.avatarUrl,
-                    onValueChange = onAvatarUrlChanged,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Avatar URL") },
-                    singleLine = true,
-                    enabled = !uiState.isSaving
-                )
-
-                if (uiState.errorMessage != null) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    ErrorMessage(message = uiState.errorMessage)
-
-                    Spacer(modifier = Modifier.height(8.dp))
+                uiState.errorMessage?.let {
+                    ErrorMessage(message = it)
                     TextButton(onClick = onRetryClick) {
                         Text("Повторить")
                     }
                 }
 
-                if (uiState.successMessage != null) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    SuccessMessage(message = uiState.successMessage)
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Spacer(modifier = Modifier.height(8.dp))
+                uiState.successMessage?.let { SuccessMessage(message = it) }
 
                 Button(
                     onClick = onSaveClick,
@@ -178,26 +160,30 @@ private fun ProfileScreen(
                         Text("Сохранить")
                     }
                 }
+            }
+        }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Button(
-                    onClick = onCreateHandlerProfileClick,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !uiState.isSaving
-                ) {
+        item {
+            ProductCard(modifier = Modifier.fillMaxWidth()) {
+                Text("Настройки", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                TextButton(onClick = onCreateHandlerProfileClick, modifier = Modifier.fillMaxWidth()) {
                     Text("Создать профиль хэндлера")
                 }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                TextButton(
-                    onClick = onLogoutClick,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Выйти")
+                TextButton(onClick = onLogoutClick, modifier = Modifier.fillMaxWidth()) {
+                    Text("Выйти", color = PetPrimary)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ProfileStat(
+    value: String,
+    label: String
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(label, style = MaterialTheme.typography.labelMedium, color = PetTextSecondary)
     }
 }

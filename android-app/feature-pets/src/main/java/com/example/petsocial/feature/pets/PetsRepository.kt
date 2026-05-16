@@ -1,5 +1,6 @@
 package com.example.petsocial.feature.pets
 
+import android.net.Uri
 import com.example.petsocial.core.network.model.pets.PetResponse
 
 interface PetsRepository {
@@ -13,8 +14,15 @@ interface PetsRepository {
         sex: String?,
         birthDate: String?,
         weightKg: String?,
-        bio: String?
+        bio: String?,
+        photoUrl: String?,
+        personalityTags: List<String>,
+        interests: List<String>,
+        healthNotes: String?,
+        matchingGoal: String?
     ): PetResponse
+
+    suspend fun uploadImage(uri: Uri): String
 
     suspend fun setActivePet(id: String)
 }

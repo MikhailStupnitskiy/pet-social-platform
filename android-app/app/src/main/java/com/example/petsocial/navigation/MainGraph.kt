@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -17,12 +18,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.petsocial.core.designsystem.theme.PetBackground
+import com.example.petsocial.core.designsystem.theme.PetPrimary
+import com.example.petsocial.core.designsystem.theme.PetPrimaryLight
+import com.example.petsocial.core.designsystem.theme.PetSurface
+import com.example.petsocial.core.designsystem.theme.PetTextSecondary
 import com.example.petsocial.core.navigation.AppRoutes
 import com.example.petsocial.core.navigation.bottomNavItemsFor
 import com.example.petsocial.core.ui.PetSocialTopBar
@@ -73,6 +80,7 @@ private fun MainScaffold(
         ?.route
 
     Scaffold(
+        containerColor = PetBackground,
         topBar = {
             PetSocialTopBar(title = titleForRoute(currentRoute, isHandler))
         },
@@ -81,7 +89,9 @@ private fun MainScaffold(
         }
     ) { innerPadding ->
         Column(
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
         ) {
             when (currentRoute) {
                 AppRoutes.Profile -> {
@@ -95,25 +105,11 @@ private fun MainScaffold(
                     }
                 }
 
-                AppRoutes.Feed -> {
-                    FeedRoute()
-                }
-
-                AppRoutes.Matching -> {
-                    MatchingRoute()
-                }
-
-                AppRoutes.Chats -> {
-                    ChatsRoute()
-                }
-
-                AppRoutes.Care -> {
-                    CareRoute()
-                }
-
-                AppRoutes.Handlers -> {
-                    HandlersRoute(isHandler = true)
-                }
+                AppRoutes.Feed -> FeedRoute()
+                AppRoutes.Matching -> MatchingRoute()
+                AppRoutes.Chats -> ChatsRoute()
+                AppRoutes.Care -> CareRoute()
+                AppRoutes.Handlers -> HandlersRoute(isHandler = true)
             }
         }
     }
@@ -128,15 +124,7 @@ private fun OwnerProfileRoute(
     val tabs = listOf("Профиль", "Питомцы")
 
     Column(modifier = Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = selectedTab) {
-            tabs.forEachIndexed { index, title ->
-                Tab(
-                    selected = selectedTab == index,
-                    onClick = { selectedTab = index },
-                    text = { Text(title) }
-                )
-            }
-        }
+        ProductTabRow(selectedTab = selectedTab, tabs = tabs) { selectedTab = it }
 
         when (selectedTab) {
             0 -> ProfileRoute(
@@ -153,18 +141,10 @@ private fun OwnerProfileRoute(
 @Composable
 private fun CareRoute() {
     var selectedTab by rememberSaveable { mutableStateOf(0) }
-    val tabs = listOf("Рутина", "Хэндлеры")
+    val tabs = listOf("Рутина", "Услуги")
 
     Column(modifier = Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = selectedTab) {
-            tabs.forEachIndexed { index, title ->
-                Tab(
-                    selected = selectedTab == index,
-                    onClick = { selectedTab = index },
-                    text = { Text(title) }
-                )
-            }
-        }
+        ProductTabRow(selectedTab = selectedTab, tabs = tabs) { selectedTab = it }
 
         when (selectedTab) {
             0 -> RoutineRoute()
@@ -173,12 +153,35 @@ private fun CareRoute() {
     }
 }
 
+@Composable
+private fun ProductTabRow(
+    selectedTab: Int,
+    tabs: List<String>,
+    onSelected: (Int) -> Unit
+) {
+    TabRow(
+        selectedTabIndex = selectedTab,
+        containerColor = PetBackground,
+        contentColor = PetPrimary
+    ) {
+        tabs.forEachIndexed { index, title ->
+            Tab(
+                selected = selectedTab == index,
+                onClick = { onSelected(index) },
+                text = { Text(title) },
+                selectedContentColor = PetPrimary,
+                unselectedContentColor = PetTextSecondary
+            )
+        }
+    }
+}
+
 private fun titleForRoute(route: String?, isHandler: Boolean): String {
     return when (route) {
         AppRoutes.Profile -> "Профиль"
         AppRoutes.Feed -> "Лента"
-        AppRoutes.Matching -> "Знакомства"
-        AppRoutes.Chats -> "Чаты"
+        AppRoutes.Matching -> "Найти пару"
+        AppRoutes.Chats -> "Сообщения"
         AppRoutes.Care -> "Уход"
         AppRoutes.Handlers -> if (isHandler) "Работа" else "Услуги"
         else -> "PetSocial"
@@ -193,7 +196,10 @@ private fun PetSocialBottomBar(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    NavigationBar {
+    NavigationBar(
+        containerColor = PetSurface,
+        tonalElevation = 8.dp
+    ) {
         bottomNavItemsFor(isHandler).forEach { item ->
             NavigationBarItem(
                 selected = currentDestination.isSelected(item.route),
@@ -212,9 +218,14 @@ private fun PetSocialBottomBar(
                         contentDescription = item.title
                     )
                 },
-                label = {
-                    Text(item.title)
-                }
+                label = { Text(item.title) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = PetPrimary,
+                    selectedTextColor = PetPrimary,
+                    indicatorColor = PetPrimaryLight,
+                    unselectedIconColor = PetTextSecondary,
+                    unselectedTextColor = PetTextSecondary
+                )
             )
         }
     }

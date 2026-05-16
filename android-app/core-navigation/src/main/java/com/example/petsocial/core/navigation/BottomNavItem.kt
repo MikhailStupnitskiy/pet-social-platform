@@ -16,60 +16,20 @@ data class BottomNavItem(
 )
 
 fun bottomNavItemsFor(isHandler: Boolean): List<BottomNavItem> {
-    return if (isHandler) {
-        handlerBottomNavItems
-    } else {
-        ownerBottomNavItems
-    }
+    return if (isHandler) handlerBottomNavItems else ownerBottomNavItems
 }
 
 private val ownerBottomNavItems = listOf(
-    BottomNavItem(
-        route = AppRoutes.Feed,
-        title = "Лента",
-        icon = Icons.Default.Home
-    ),
-    BottomNavItem(
-        route = AppRoutes.Matching,
-        title = "Знакомства",
-        icon = Icons.Default.Favorite
-    ),
-    BottomNavItem(
-        route = AppRoutes.Chats,
-        title = "Чаты",
-        icon = Icons.Default.Chat
-    ),
-    BottomNavItem(
-        route = AppRoutes.Care,
-        title = "Уход",
-        icon = Icons.Default.Task
-    ),
-    BottomNavItem(
-        route = AppRoutes.Profile,
-        title = "Профиль",
-        icon = Icons.Default.Person
-    )
+    BottomNavItem(AppRoutes.Feed, "Лента", Icons.Default.Home),
+    BottomNavItem(AppRoutes.Matching, "Мэтчинг", Icons.Default.Favorite),
+    BottomNavItem(AppRoutes.Chats, "Чаты", Icons.Default.Chat),
+    BottomNavItem(AppRoutes.Care, "Уход", Icons.Default.Task),
+    BottomNavItem(AppRoutes.Profile, "Профиль", Icons.Default.Person)
 )
 
 private val handlerBottomNavItems = listOf(
-    BottomNavItem(
-        route = AppRoutes.Feed,
-        title = "Лента",
-        icon = Icons.Default.Home
-    ),
-    BottomNavItem(
-        route = AppRoutes.Handlers,
-        title = "Работа",
-        icon = Icons.Default.Work
-    ),
-    BottomNavItem(
-        route = AppRoutes.Chats,
-        title = "Чаты",
-        icon = Icons.Default.Chat
-    ),
-    BottomNavItem(
-        route = AppRoutes.Profile,
-        title = "Профиль",
-        icon = Icons.Default.Person
-    )
+    BottomNavItem(AppRoutes.Feed, "Лента", Icons.Default.Home),
+    BottomNavItem(AppRoutes.Handlers, "Работа", Icons.Default.Work),
+    BottomNavItem(AppRoutes.Chats, "Чаты", Icons.Default.Chat),
+    BottomNavItem(AppRoutes.Profile, "Профиль", Icons.Default.Person)
 )

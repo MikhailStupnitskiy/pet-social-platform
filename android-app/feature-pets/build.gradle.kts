@@ -47,6 +47,7 @@ dependencies {
     implementation(project(":core-common"))
 
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
 
     implementation(platform(libs.androidx.compose.bom))
@@ -58,6 +59,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.retrofit)
+    implementation(libs.okhttp)
+    implementation(libs.coil.compose)
 
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)

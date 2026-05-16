@@ -12,10 +12,14 @@ private val LightColorScheme: ColorScheme = lightColorScheme(
     onPrimary = PetOnPrimary,
     secondary = PetSecondary,
     onSecondary = PetOnSecondary,
+    secondaryContainer = PetSecondaryLight,
+    onSecondaryContainer = PetSecondary,
     background = PetBackground,
     onBackground = PetOnBackground,
     surface = PetSurface,
     onSurface = PetOnSurface,
+    surfaceVariant = PetSurfaceMuted,
+    outline = PetOutline,
     error = PetError,
     onError = PetOnError
 )

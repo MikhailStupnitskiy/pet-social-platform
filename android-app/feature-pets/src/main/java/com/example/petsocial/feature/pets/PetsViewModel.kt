@@ -1,5 +1,6 @@
 package com.example.petsocial.feature.pets
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,6 +35,7 @@ class PetsViewModel @Inject constructor(
                 is AppResult.Success -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
+                        isCreating = false,
                         pets = result.data
                     )
                 }
@@ -89,6 +91,58 @@ class PetsViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(bio = value, errorMessage = null, successMessage = null)
     }
 
+    fun onPhotoUrlChanged(value: String) {
+        _uiState.value = _uiState.value.copy(photoUrl = value, errorMessage = null, successMessage = null)
+    }
+
+    fun onPhotoSelected(uri: Uri?) {
+        _uiState.value = _uiState.value.copy(
+            selectedPhotoUri = uri,
+            errorMessage = null,
+            successMessage = null
+        )
+    }
+
+    fun clearSelectedPhoto() {
+        _uiState.value = _uiState.value.copy(
+            selectedPhotoUri = null,
+            errorMessage = null,
+            successMessage = null
+        )
+    }
+
+    fun showAddPetForm() {
+        _uiState.value = _uiState.value.copy(
+            isAddPetFormVisible = true,
+            errorMessage = null,
+            successMessage = null
+        )
+    }
+
+    fun hideAddPetForm() {
+        _uiState.value = _uiState.value.copy(
+            isAddPetFormVisible = false,
+            errorMessage = null,
+            successMessage = null
+        )
+    }
+
+    fun onPersonalityTagsChanged(value: String) {
+        _uiState.value = _uiState.value.copy(personalityTags = value, errorMessage = null, successMessage = null)
+    }
+
+    fun onInterestsChanged(value: String) {
+        _uiState.value = _uiState.value.copy(interests = value, errorMessage = null, successMessage = null)
+    }
+
+    fun onHealthNotesChanged(value: String) {
+        _uiState.value = _uiState.value.copy(healthNotes = value, errorMessage = null, successMessage = null)
+    }
+
+    fun onMatchingGoalChanged(value: String) {
+        _uiState.value = _uiState.value.copy(matchingGoal = value, errorMessage = null, successMessage = null)
+    }
+
     fun createPet() {
         val state = _uiState.value
 
@@ -110,6 +164,10 @@ class PetsViewModel @Inject constructor(
             )
 
             val result = safeApiCall {
+                val photoUrl = state.selectedPhotoUri?.let { uri ->
+                    repository.uploadImage(uri)
+                } ?: state.photoUrl.trim().ifBlank { null }
+
                 repository.createPet(
                     name = state.name.trim(),
                     species = state.species.trim(),
@@ -117,7 +175,12 @@ class PetsViewModel @Inject constructor(
                     sex = state.sex.trim().ifBlank { null },
                     birthDate = state.birthDate.trim().ifBlank { null },
                     weightKg = state.weightKg.trim().ifBlank { null },
-                    bio = state.bio.trim().ifBlank { null }
+                    bio = state.bio.trim().ifBlank { null },
+                    photoUrl = photoUrl,
+                    personalityTags = splitCsv(state.personalityTags),
+                    interests = splitCsv(state.interests),
+                    healthNotes = state.healthNotes.trim().ifBlank { null },
+                    matchingGoal = state.matchingGoal.trim().ifBlank { null }
                 )
             }
 
@@ -132,6 +195,13 @@ class PetsViewModel @Inject constructor(
                         birthDate = "",
                         weightKg = "",
                         bio = "",
+                        photoUrl = "",
+                        selectedPhotoUri = null,
+                        personalityTags = "",
+                        interests = "",
+                        healthNotes = "",
+                        matchingGoal = "",
+                        isAddPetFormVisible = false,
                         successMessage = "Питомец создан"
                     )
 
@@ -145,6 +215,7 @@ class PetsViewModel @Inject constructor(
 
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
+                        isCreating = false,
                         errorMessage = result.error.message
                     )
                 }
@@ -181,5 +252,12 @@ class PetsViewModel @Inject constructor(
         }
 
         loadPets()
+    }
+
+    private fun splitCsv(value: String): List<String> {
+        return value.split(",")
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .distinct()
     }
 }

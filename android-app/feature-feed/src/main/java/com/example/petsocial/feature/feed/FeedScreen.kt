@@ -3,6 +3,7 @@ package com.example.petsocial.feature.feed
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +41,9 @@ import coil.request.ImageRequest
 import com.example.petsocial.core.network.API_BASE_URL
 import com.example.petsocial.core.network.model.feed.CommentResponse
 import com.example.petsocial.core.network.model.feed.PostResponse
+import com.example.petsocial.core.designsystem.theme.PetBackground
+import com.example.petsocial.core.designsystem.theme.PetPrimary
+import com.example.petsocial.core.designsystem.theme.PetTextSecondary
 import com.example.petsocial.core.ui.FullScreenLoading
 import com.example.petsocial.core.ui.SectionTitle
 import okhttp3.Headers
@@ -99,7 +103,8 @@ private fun FeedScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .background(PetBackground)
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
@@ -114,7 +119,51 @@ private fun FeedScreen(
         }
 
         item {
-            SectionTitle("Community feed")
+            Text(
+                text = "Добро пожаловать",
+                style = MaterialTheme.typography.bodyLarge,
+                color = PetTextSecondary
+            )
+            Text(
+                text = uiState.activePet?.let { "Сегодня с ${it.name}" } ?: "PetSocial",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        }
+
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Card(modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Найти пару", style = MaterialTheme.typography.titleMedium)
+                        Text("Питомцы рядом", color = PetTextSecondary, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+                Card(modifier = Modifier.weight(1f)) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Расписание", style = MaterialTheme.typography.titleMedium)
+                        Text("Задачи ухода", color = PetTextSecondary, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text("Вечерняя прогулка", style = MaterialTheme.typography.titleMedium)
+                        Text("Сегодня · активный питомец", color = PetTextSecondary)
+                    }
+                    Text("Открыть", color = PetPrimary)
+                }
+            }
+        }
+
+        item {
+            SectionTitle("Лента")
         }
 
         if (uiState.activePet != null) {
@@ -127,14 +176,14 @@ private fun FeedScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "Posting as ${uiState.activePet.name}",
+                            text = "Публикация от имени ${uiState.activePet.name}",
                             style = MaterialTheme.typography.titleMedium
                         )
                         OutlinedTextField(
                             value = uiState.body,
                             onValueChange = onBodyChanged,
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("What happened today?") },
+                            label = { Text("Что интересного сегодня?") },
                             minLines = 3,
                             enabled = !uiState.isCreating
                         )
@@ -147,7 +196,7 @@ private fun FeedScreen(
                             modifier = Modifier.fillMaxWidth(),
                             enabled = !uiState.isCreating
                         ) {
-                            Text(if (uiState.selectedImageUri == null) "Choose image" else "Change image")
+                            Text(if (uiState.selectedImageUri == null) "Выбрать фото" else "Заменить фото")
                         }
                         if (uiState.selectedImageUri != null) {
                             AsyncImage(
@@ -163,7 +212,7 @@ private fun FeedScreen(
                                 onClick = onClearSelectedImage,
                                 enabled = !uiState.isCreating
                             ) {
-                                Text("Remove image")
+                                Text("Удалить фото")
                             }
                         }
                         Button(
@@ -174,7 +223,7 @@ private fun FeedScreen(
                             if (uiState.isCreating) {
                                 CircularProgressIndicator()
                             } else {
-                                Text("Publish")
+                                Text("Опубликовать")
                             }
                         }
                     }
@@ -182,7 +231,7 @@ private fun FeedScreen(
             }
         } else {
             item {
-                Text("Choose an active pet to publish posts.")
+                Text("Выберите активного питомца, чтобы публиковать посты.")
             }
         }
 
@@ -194,7 +243,7 @@ private fun FeedScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(onClick = onRetryClick) {
-                    Text("Retry")
+                    Text("Повторить")
                 }
             }
         }
@@ -210,7 +259,7 @@ private fun FeedScreen(
 
         if (uiState.posts.isEmpty()) {
             item {
-                Text("No posts yet. The first pawprint is still up for grabs.")
+                Text("Пока здесь тихо. Добавьте питомца или найдите первых друзей рядом.")
             }
         } else {
             items(uiState.posts) { post ->
@@ -278,7 +327,7 @@ private fun FeedPostCard(
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                text = "${post.pet_species} by ${post.author_name.ifBlank { "Pet parent" }}",
+                text = "${post.pet_species} · ${post.author_name.ifBlank { "Владелец питомца" }}",
                 style = MaterialTheme.typography.bodySmall
             )
             Text(post.body)
@@ -299,9 +348,9 @@ private fun FeedPostCard(
             TextButton(onClick = onToggleCommentsClick) {
                 Text(
                     if (isExpanded) {
-                        "Hide comments (${post.comments_count})"
+                        "Скрыть комментарии (${post.comments_count})"
                     } else {
-                        "Comments (${post.comments_count})"
+                        "Комментарии (${post.comments_count})"
                     }
                 )
             }
@@ -371,7 +420,7 @@ private fun ReactionBar(
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Text(
-            text = "Reactions: ${post.reactions_count}",
+            text = "Реакции: ${post.reactions_count}",
             style = MaterialTheme.typography.bodySmall
         )
 
@@ -431,7 +480,7 @@ private fun CommentsBlock(
             CircularProgressIndicator()
         } else if (comments.isEmpty()) {
             Text(
-                text = "No comments yet",
+                text = "Комментариев пока нет",
                 style = MaterialTheme.typography.bodySmall
             )
         } else {
@@ -455,7 +504,7 @@ private fun CommentsBlock(
             value = commentInput,
             onValueChange = onCommentChanged,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Add a comment") },
+            label = { Text("Добавить комментарий") },
             minLines = 2,
             enabled = !isSubmittingComment
         )
@@ -468,7 +517,7 @@ private fun CommentsBlock(
             if (isSubmittingComment) {
                 CircularProgressIndicator()
             } else {
-                Text("Send comment")
+                Text("Отправить")
             }
         }
     }
@@ -495,7 +544,7 @@ private fun CommentRow(
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
-                text = comment.author_name.ifBlank { "Pet parent" },
+                text = comment.author_name.ifBlank { "Владелец питомца" },
                 style = MaterialTheme.typography.labelMedium
             )
 
@@ -512,13 +561,13 @@ private fun CommentRow(
                         onClick = { onSaveComment(comment.id) },
                         enabled = !isBusy
                     ) {
-                        Text("Save")
+                        Text("Сохранить")
                     }
                     TextButton(
                         onClick = onCancelEditComment,
                         enabled = !isBusy
                     ) {
-                        Text("Cancel")
+                        Text("Отмена")
                     }
                 }
             } else {
@@ -531,13 +580,13 @@ private fun CommentRow(
                         onClick = { onStartEditComment(comment) },
                         enabled = !isBusy
                     ) {
-                        Text("Edit")
+                        Text("Изменить")
                     }
                     TextButton(
                         onClick = { onDeleteComment(comment.id) },
                         enabled = !isBusy
                     ) {
-                        Text("Delete")
+                        Text("Удалить")
                     }
                 }
             }

@@ -37,9 +37,12 @@ class DefaultHandlersRepository @Inject constructor(
                 display_name = displayName,
                 city = city,
                 bio = bio,
+                avatar_url = null,
                 experience_years = experienceYears,
                 conditions = conditions,
-                is_active = isActive
+                is_active = isActive,
+                latitude = null,
+                longitude = null
             )
         )
     }
