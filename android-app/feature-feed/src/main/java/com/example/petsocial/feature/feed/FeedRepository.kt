@@ -14,6 +14,14 @@ interface FeedRepository {
         imageUrl: String?
     ): PostResponse
 
+    suspend fun updatePost(
+        postId: String,
+        body: String,
+        imageUrl: String?
+    ): PostResponse
+
+    suspend fun deletePost(postId: String)
+
     suspend fun uploadImage(uri: Uri): String
 
     suspend fun getComments(postId: String): List<CommentResponse>

@@ -81,7 +81,7 @@ private fun MainScaffold(
     Scaffold(
         containerColor = PetBackground,
         topBar = {
-            if (currentRoute != AppRoutes.Profile) {
+            if (currentRoute != AppRoutes.Profile && currentRoute != AppRoutes.Feed) {
                 PetSocialTopBar(title = titleForRoute(currentRoute, isHandler))
             }
         },
@@ -106,7 +106,26 @@ private fun MainScaffold(
                     }
                 }
 
-                AppRoutes.Feed -> FeedRoute()
+                AppRoutes.Feed -> FeedRoute(
+                    onProfileClick = {
+                        navController.navigate(AppRoutes.Profile) {
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onMatchingClick = {
+                        navController.navigate(AppRoutes.Matching) {
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onCareClick = {
+                        navController.navigate(AppRoutes.Care) {
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
                 AppRoutes.Matching -> MatchingRoute()
                 AppRoutes.Chats -> ChatsRoute()
                 AppRoutes.Care -> CareRoute()
@@ -195,9 +214,6 @@ private fun PetSocialBottomBar(
                 selected = currentDestination.isSelected(item.route),
                 onClick = {
                     navController.navigate(item.route) {
-                        popUpTo(AppRoutes.Profile) {
-                            saveState = true
-                        }
                         launchSingleTop = true
                         restoreState = true
                     }

@@ -10,6 +10,7 @@ import com.example.petsocial.core.network.model.feed.CreatePostRequest
 import com.example.petsocial.core.network.model.feed.PostResponse
 import com.example.petsocial.core.network.model.feed.SetReactionRequest
 import com.example.petsocial.core.network.model.feed.UpdateCommentRequest
+import com.example.petsocial.core.network.model.feed.UpdatePostRequest
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException
 import javax.inject.Inject
@@ -38,6 +39,24 @@ class DefaultFeedRepository @Inject constructor(
                 image_url = imageUrl
             )
         )
+    }
+
+    override suspend fun updatePost(
+        postId: String,
+        body: String,
+        imageUrl: String?
+    ): PostResponse {
+        return feedApi.updatePost(
+            id = postId,
+            request = UpdatePostRequest(
+                body = body,
+                image_url = imageUrl
+            )
+        )
+    }
+
+    override suspend fun deletePost(postId: String) {
+        feedApi.deletePost(postId)
     }
 
     override suspend fun uploadImage(uri: Uri): String {

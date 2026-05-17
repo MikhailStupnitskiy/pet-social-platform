@@ -52,7 +52,7 @@ fun PetSocialAppRoot(
             }
 
             is SessionUiState.Authorized -> {
-                navController.navigate(AppRoutes.Profile) {
+                navController.navigate(AppRoutes.Feed) {
                     popUpTo(0)
                     launchSingleTop = true
                 }

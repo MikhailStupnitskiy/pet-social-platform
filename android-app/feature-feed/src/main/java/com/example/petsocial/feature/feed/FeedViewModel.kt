@@ -10,8 +10,10 @@ import com.example.petsocial.core.common.result.safeApiCall
 import com.example.petsocial.core.common.session.SessionEventBus
 import com.example.petsocial.core.datastore.auth.TokenStorage
 import com.example.petsocial.core.network.api.PetsApi
+import com.example.petsocial.core.network.api.ProfileApi
 import com.example.petsocial.core.network.model.feed.CommentResponse
 import com.example.petsocial.core.network.model.feed.PostResponse
+import com.example.petsocial.core.network.model.profile.ProfileStatsResponse
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +26,7 @@ import javax.inject.Inject
 class FeedViewModel @Inject constructor(
     private val repository: FeedRepository,
     private val petsApi: PetsApi,
+    private val profileApi: ProfileApi,
     private val authRepository: AuthRepository,
     private val tokenStorage: TokenStorage,
     private val sessionEventBus: SessionEventBus
@@ -48,8 +51,8 @@ class FeedViewModel @Inject constructor(
                 successMessage = null
             )
 
-            val currentUserId = when (val meResult = safeApiCall { authRepository.getMe() }) {
-                is AppResult.Success -> meResult.data.id
+            val currentUser = when (val meResult = safeApiCall { authRepository.getMe() }) {
+                is AppResult.Success -> meResult.data
                 is AppResult.Error -> {
                     if (handleUnauthorized(meResult.error)) {
                         return@launch
@@ -62,9 +65,22 @@ class FeedViewModel @Inject constructor(
                     return@launch
                 }
             }
+            val currentUserId = currentUser.id
 
-            val activePet = when (val petsResult = safeApiCall { petsApi.getPets() }) {
-                is AppResult.Success -> petsResult.data.firstOrNull { it.is_active }
+            val ownerName = when (val profileResult = safeApiCall { profileApi.getMe() }) {
+                is AppResult.Success -> profileResult.data.name.ifBlank { currentUser.email }
+                is AppResult.Error -> {
+                    if (handleUnauthorized(profileResult.error)) {
+                        return@launch
+                    }
+                    currentUser.email
+                }
+            }
+
+            val stats = currentProfileStatsOrNull()
+
+            val pets = when (val petsResult = safeApiCall { petsApi.getPets() }) {
+                is AppResult.Success -> petsResult.data
                 is AppResult.Error -> {
                     if (handleUnauthorized(petsResult.error)) {
                         return@launch
@@ -77,12 +93,18 @@ class FeedViewModel @Inject constructor(
                     return@launch
                 }
             }
+            val activePet = pets.firstOrNull { it.is_active }
 
             when (val feedResult = safeApiCall { repository.getFeed() }) {
                 is AppResult.Success -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         currentUserId = currentUserId,
+                        ownerName = ownerName,
+                        petsCount = stats?.pets_count ?: 0,
+                        matchesCount = stats?.matches_count ?: 0,
+                        postsCount = stats?.posts_count ?: 0,
+                        pets = pets,
                         activePet = activePet,
                         posts = feedResult.data
                     )
@@ -96,6 +118,11 @@ class FeedViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         currentUserId = currentUserId,
+                        ownerName = ownerName,
+                        petsCount = stats?.pets_count ?: 0,
+                        matchesCount = stats?.matches_count ?: 0,
+                        postsCount = stats?.posts_count ?: 0,
+                        pets = pets,
                         activePet = activePet,
                         errorMessage = feedResult.error.message
                     )
@@ -126,6 +153,64 @@ class FeedViewModel @Inject constructor(
             errorMessage = null,
             successMessage = null
         )
+    }
+
+    fun showCreatePostSheet() {
+        _uiState.value = _uiState.value.copy(
+            isCreatePostSheetVisible = true,
+            errorMessage = null,
+            successMessage = null
+        )
+    }
+
+    fun hideCreatePostSheet() {
+        if (_uiState.value.isCreating) {
+            return
+        }
+        _uiState.value = _uiState.value.copy(
+            isCreatePostSheetVisible = false,
+            body = "",
+            selectedImageUri = null
+        )
+    }
+
+    fun setActivePet(petId: String) {
+        val state = _uiState.value
+        if (state.activePet?.id == petId || state.switchingPetId != null) {
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                switchingPetId = petId,
+                errorMessage = null,
+                successMessage = null
+            )
+
+            when (val result = safeApiCall { petsApi.setActivePet(petId) }) {
+                is AppResult.Success -> {
+                    val pets = _uiState.value.pets.map { pet ->
+                        pet.copy(is_active = pet.id == petId)
+                    }
+                    _uiState.value = _uiState.value.copy(
+                        switchingPetId = null,
+                        pets = pets,
+                        activePet = pets.firstOrNull { it.is_active }
+                    )
+                }
+
+                is AppResult.Error -> {
+                    if (handleUnauthorized(result.error)) {
+                        return@launch
+                    }
+
+                    _uiState.value = _uiState.value.copy(
+                        switchingPetId = null,
+                        errorMessage = result.error.message
+                    )
+                }
+            }
+        }
     }
 
     fun createPost() {
@@ -162,12 +247,18 @@ class FeedViewModel @Inject constructor(
                 }
             ) {
                 is AppResult.Success -> {
+                    val newPosts = listOf(result.data) + _uiState.value.posts
+                    val stats = currentProfileStatsOrNull()
                     _uiState.value = _uiState.value.copy(
                         isCreating = false,
+                        isCreatePostSheetVisible = false,
                         body = "",
                         selectedImageUri = null,
                         successMessage = "Post published",
-                        posts = listOf(result.data) + _uiState.value.posts
+                        posts = newPosts,
+                        petsCount = stats?.pets_count ?: _uiState.value.petsCount,
+                        matchesCount = stats?.matches_count ?: _uiState.value.matchesCount,
+                        postsCount = stats?.posts_count ?: _uiState.value.postsCount
                     )
                 }
 
@@ -187,16 +278,28 @@ class FeedViewModel @Inject constructor(
 
     fun toggleComments(postId: String) {
         val state = _uiState.value
-        if (state.expandedPostId == postId) {
-            _uiState.value = state.copy(expandedPostId = null)
+        if (state.activeCommentsPostId == postId) {
+            _uiState.value = state.copy(activeCommentsPostId = null)
             return
         }
 
-        _uiState.value = state.copy(expandedPostId = postId, errorMessage = null, successMessage = null)
+        _uiState.value = state.copy(activeCommentsPostId = postId, errorMessage = null, successMessage = null)
 
         if (!state.commentsByPost.containsKey(postId)) {
             loadComments(postId)
         }
+    }
+
+    fun closeComments() {
+        _uiState.value = _uiState.value.copy(activeCommentsPostId = null)
+    }
+
+    fun showPostProfile(postId: String) {
+        _uiState.value = _uiState.value.copy(activeProfilePostId = postId)
+    }
+
+    fun hidePostProfile() {
+        _uiState.value = _uiState.value.copy(activeProfilePostId = null)
     }
 
     fun loadComments(postId: String) {
@@ -370,6 +473,150 @@ class FeedViewModel @Inject constructor(
         }
     }
 
+    fun startEditPost(post: PostResponse) {
+        _uiState.value = _uiState.value.copy(
+            editingPostId = post.id,
+            editingPostBody = post.body,
+            editingPostImageUri = null,
+            editingPostExistingImageUrl = post.image_url,
+            isEditingPostImageRemoved = false,
+            errorMessage = null,
+            successMessage = null
+        )
+    }
+
+    fun onEditingPostBodyChanged(value: String) {
+        _uiState.value = _uiState.value.copy(editingPostBody = value)
+    }
+
+    fun onEditingPostImageSelected(uri: Uri?) {
+        _uiState.value = _uiState.value.copy(
+            editingPostImageUri = uri,
+            isEditingPostImageRemoved = false,
+            errorMessage = null,
+            successMessage = null
+        )
+    }
+
+    fun removeEditingPostImage() {
+        _uiState.value = _uiState.value.copy(
+            editingPostImageUri = null,
+            editingPostExistingImageUrl = null,
+            isEditingPostImageRemoved = true,
+            errorMessage = null,
+            successMessage = null
+        )
+    }
+
+    fun cancelEditPost() {
+        if (_uiState.value.isUpdatingPost) {
+            return
+        }
+        _uiState.value = _uiState.value.copy(
+            editingPostId = null,
+            editingPostBody = "",
+            editingPostImageUri = null,
+            editingPostExistingImageUrl = null,
+            isEditingPostImageRemoved = false
+        )
+    }
+
+    fun savePost() {
+        val state = _uiState.value
+        val postId = state.editingPostId ?: return
+        val body = state.editingPostBody.trim()
+
+        if (body.isBlank()) {
+            _uiState.value = state.copy(errorMessage = "Post text cannot be empty")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isUpdatingPost = true,
+                errorMessage = null,
+                successMessage = null
+            )
+
+            when (
+                val result = safeApiCall {
+                    val imageUrl = state.editingPostImageUri?.let { uri ->
+                        repository.uploadImage(uri)
+                    } ?: state.editingPostExistingImageUrl
+
+                    repository.updatePost(
+                        postId = postId,
+                        body = body,
+                        imageUrl = imageUrl
+                    )
+                }
+            ) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        isUpdatingPost = false,
+                        editingPostId = null,
+                        editingPostBody = "",
+                        editingPostImageUri = null,
+                        editingPostExistingImageUrl = null,
+                        isEditingPostImageRemoved = false,
+                        posts = replacePost(result.data),
+                        successMessage = "Post updated"
+                    )
+                }
+
+                is AppResult.Error -> {
+                    if (handleUnauthorized(result.error)) {
+                        return@launch
+                    }
+
+                    _uiState.value = _uiState.value.copy(
+                        isUpdatingPost = false,
+                        errorMessage = result.error.message
+                    )
+                }
+            }
+        }
+    }
+
+    fun deletePost(postId: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                deletingPostIds = _uiState.value.deletingPostIds + postId,
+                errorMessage = null,
+                successMessage = null
+            )
+
+            when (val result = safeApiCall { repository.deletePost(postId) }) {
+                is AppResult.Success -> {
+                    val stats = currentProfileStatsOrNull()
+                    _uiState.value = _uiState.value.copy(
+                        deletingPostIds = _uiState.value.deletingPostIds - postId,
+                        posts = _uiState.value.posts.filterNot { it.id == postId },
+                        commentsByPost = _uiState.value.commentsByPost - postId,
+                        activeCommentsPostId = _uiState.value.activeCommentsPostId.takeIf { it != postId },
+                        activeProfilePostId = _uiState.value.activeProfilePostId.takeIf { it != postId },
+                        editingPostId = _uiState.value.editingPostId.takeIf { it != postId },
+                        petsCount = stats?.pets_count ?: _uiState.value.petsCount,
+                        matchesCount = stats?.matches_count ?: _uiState.value.matchesCount,
+                        postsCount = stats?.posts_count ?: _uiState.value.postsCount,
+                        successMessage = "Post deleted"
+                    )
+                }
+
+                is AppResult.Error -> {
+                    if (handleUnauthorized(result.error)) {
+                        return@launch
+                    }
+
+                    _uiState.value = _uiState.value.copy(
+                        deletingPostIds = _uiState.value.deletingPostIds - postId,
+                        errorMessage = result.error.message
+                    )
+                }
+            }
+        }
+    }
+
     fun toggleReaction(post: PostResponse, reactionType: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
@@ -413,6 +660,16 @@ class FeedViewModel @Inject constructor(
         }
 
         return false
+    }
+
+    private suspend fun currentProfileStatsOrNull(): ProfileStatsResponse? {
+        return when (val statsResult = safeApiCall { profileApi.getStats() }) {
+            is AppResult.Success -> statsResult.data
+            is AppResult.Error -> {
+                handleUnauthorized(statsResult.error)
+                null
+            }
+        }
     }
 
     private fun replacePost(post: PostResponse): List<PostResponse> {
