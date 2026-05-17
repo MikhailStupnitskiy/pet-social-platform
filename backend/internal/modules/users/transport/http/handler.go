@@ -41,6 +41,30 @@ func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, toProfileResponse(profile))
 }
 
+func (h *Handler) GetMyStats(w http.ResponseWriter, r *http.Request) {
+	userID, ok := authhttp.UserIDFromContext(r.Context())
+	if !ok || userID == "" {
+		response.Unauthorized(w, "unauthorized")
+		return
+	}
+
+	stats, err := h.service.GetMyProfileStats(r.Context(), userID)
+	if err != nil {
+		if errors.Is(err, domain.ErrProfileNotFound) {
+			response.NotFound(w, "profile not found")
+			return
+		}
+		response.InternalServerError(w)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, ProfileStatsResponse{
+		PetsCount:    stats.PetsCount,
+		MatchesCount: stats.MatchesCount,
+		PostsCount:   stats.PostsCount,
+	})
+}
+
 func (h *Handler) PatchMe(w http.ResponseWriter, r *http.Request) {
 	userID, ok := authhttp.UserIDFromContext(r.Context())
 	if !ok || userID == "" {

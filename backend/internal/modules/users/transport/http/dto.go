@@ -19,3 +19,9 @@ type ProfileResponse struct {
 	CreatedAt string  `json:"created_at"`
 	UpdatedAt string  `json:"updated_at"`
 }
+
+type ProfileStatsResponse struct {
+	PetsCount    int `json:"pets_count"`
+	MatchesCount int `json:"matches_count"`
+	PostsCount   int `json:"posts_count"`
+}

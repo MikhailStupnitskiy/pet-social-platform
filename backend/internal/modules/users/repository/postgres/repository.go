@@ -58,6 +58,35 @@ func (r *Repository) GetProfileByUserID(ctx context.Context, userID string) (*do
 	return &profile, nil
 }
 
+func (r *Repository) GetProfileStats(ctx context.Context, userID string) (*domain.ProfileStats, error) {
+	const query = `
+		SELECT
+			COUNT(DISTINCT p.id)::integer AS pets_count,
+			COUNT(DISTINCT m.id)::integer AS matches_count,
+			COUNT(DISTINCT sp.id)::integer AS posts_count
+		FROM users u
+		LEFT JOIN pets p ON p.owner_id = u.id
+		LEFT JOIN matches m ON m.pet1_id = p.id OR m.pet2_id = p.id
+		LEFT JOIN social_posts sp ON sp.author_user_id = u.id
+		WHERE u.id = $1
+	`
+
+	var stats domain.ProfileStats
+	err := r.db.QueryRow(ctx, query, userID).Scan(
+		&stats.PetsCount,
+		&stats.MatchesCount,
+		&stats.PostsCount,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.ErrProfileNotFound
+		}
+		return nil, err
+	}
+
+	return &stats, nil
+}
+
 func (r *Repository) UpsertProfile(
 	ctx context.Context,
 	userID string,

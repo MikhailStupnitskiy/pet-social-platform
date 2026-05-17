@@ -4,6 +4,7 @@ import "context"
 
 type Repository interface {
 	GetProfileByUserID(ctx context.Context, userID string) (*Profile, error)
+	GetProfileStats(ctx context.Context, userID string) (*ProfileStats, error)
 	UpsertProfile(
 		ctx context.Context,
 		userID string,

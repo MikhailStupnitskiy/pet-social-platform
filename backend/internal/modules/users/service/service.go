@@ -18,6 +18,10 @@ func (s *Service) GetMyProfile(ctx context.Context, userID string) (*domain.Prof
 	return s.repo.GetProfileByUserID(ctx, userID)
 }
 
+func (s *Service) GetMyProfileStats(ctx context.Context, userID string) (*domain.ProfileStats, error) {
+	return s.repo.GetProfileStats(ctx, userID)
+}
+
 func (s *Service) UpdateMyProfile(
 	ctx context.Context,
 	userID string,

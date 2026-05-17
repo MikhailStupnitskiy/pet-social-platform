@@ -144,6 +144,7 @@ func New(deps Dependencies) http.Handler {
 		r.Use(authhttp.AuthMiddleware(authSvc))
 
 		r.Get("/me", usersHandler.GetMe)
+		r.Get("/me/stats", usersHandler.GetMyStats)
 		r.Patch("/me", usersHandler.PatchMe)
 	})
 

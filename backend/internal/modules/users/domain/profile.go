@@ -13,3 +13,9 @@ type Profile struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
+
+type ProfileStats struct {
+	PetsCount    int
+	MatchesCount int
+	PostsCount   int
+}
