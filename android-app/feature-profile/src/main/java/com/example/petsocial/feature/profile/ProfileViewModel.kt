@@ -204,16 +204,16 @@ class ProfileViewModel @Inject constructor(
             petFormMode = PetFormMode.Edit,
             editingPetId = pet.id,
             petName = pet.name,
-            petSpecies = pet.species,
+            petSpecies = normalizeSpecies(pet.species),
             petBreed = pet.breed.orEmpty(),
-            petSex = pet.sex.orEmpty(),
+            petSex = normalizeSex(pet.sex.orEmpty()),
             petBirthDate = pet.birth_date.orEmpty(),
             petBio = pet.bio.orEmpty(),
             selectedPetPhotoUri = null,
             currentPetPhotoUrl = pet.photo_url,
-            petPersonalityTags = pet.personality_tags,
+            petPersonalityTags = pet.personality_tags.filter { it in allowedPersonalityTags },
             petPersonalityInput = "",
-            petInterests = pet.interests,
+            petInterests = pet.interests.filter { it in allowedInterests },
             petInterestInput = "",
             petHealthNotes = pet.health_notes.orEmpty(),
             petMatchingGoal = pet.matching_goal.orEmpty(),
@@ -231,7 +231,14 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun onPetSpeciesChanged(value: String) {
-        _uiState.value = _uiState.value.copy(petSpecies = value, errorMessage = null, successMessage = null)
+        val state = _uiState.value
+        val breed = if (state.petBreed in breedOptionsFor(value)) state.petBreed else ""
+        _uiState.value = state.copy(
+            petSpecies = value,
+            petBreed = breed,
+            errorMessage = null,
+            successMessage = null
+        )
     }
 
     fun onPetBreedChanged(value: String) {
@@ -278,6 +285,17 @@ class ProfileViewModel @Inject constructor(
         )
     }
 
+    fun togglePersonalityTag(tag: String) {
+        if (tag !in allowedPersonalityTags) return
+        val state = _uiState.value
+        val tags = if (tag in state.petPersonalityTags) {
+            state.petPersonalityTags - tag
+        } else {
+            state.petPersonalityTags + tag
+        }
+        _uiState.value = state.copy(petPersonalityTags = tags, errorMessage = null, successMessage = null)
+    }
+
     fun onInterestInputChanged(value: String) {
         _uiState.value = _uiState.value.copy(petInterestInput = value)
     }
@@ -296,6 +314,17 @@ class ProfileViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             petInterests = _uiState.value.petInterests.filterNot { it == tag }
         )
+    }
+
+    fun toggleInterest(tag: String) {
+        if (tag !in allowedInterests) return
+        val state = _uiState.value
+        val tags = if (tag in state.petInterests) {
+            state.petInterests - tag
+        } else {
+            state.petInterests + tag
+        }
+        _uiState.value = state.copy(petInterests = tags, errorMessage = null, successMessage = null)
     }
 
     fun onPetHealthNotesChanged(value: String) {
@@ -448,5 +477,68 @@ class ProfileViewModel @Inject constructor(
         }
 
         return false
+    }
+
+    private fun normalizeSpecies(value: String): String {
+        return when (value.lowercase()) {
+            "dog", "собака" -> "Собака"
+            "cat", "кошка" -> "Кошка"
+            else -> value
+        }
+    }
+
+    private fun normalizeSex(value: String): String {
+        return when (value.lowercase()) {
+            "male", "boy", "мальчик" -> "Мальчик"
+            "female", "girl", "девочка" -> "Девочка"
+            else -> value
+        }
+    }
+
+    private fun breedOptionsFor(species: String): Set<String> {
+        return when (species) {
+            "Кошка" -> catBreedOptions
+            else -> dogBreedOptions
+        }
+    }
+
+    private companion object {
+        val allowedPersonalityTags = setOf("Веселый", "Спокойный", "Активный", "Ласковый", "Игривый", "Общительный")
+        val allowedInterests = setOf("Прогулки", "Бег", "Игры", "Парк", "Тренировки", "Путешествия")
+        val dogBreedOptions = setOf(
+            "Акита-ину",
+            "Бигль",
+            "Бордер-колли",
+            "Вельш-корги",
+            "Джек-рассел-терьер",
+            "Золотистый ретривер",
+            "Йоркширский терьер",
+            "Лабрадор",
+            "Мопс",
+            "Немецкая овчарка",
+            "Померанский шпиц",
+            "Пудель",
+            "Самоед",
+            "Сиба-ину",
+            "Такса",
+            "Французский бульдог",
+            "Хаски",
+            "Чихуахуа",
+            "Шпиц"
+        )
+        val catBreedOptions = setOf(
+            "Абиссинская",
+            "Бенгальская",
+            "Британская короткошерстная",
+            "Мейн-кун",
+            "Невская маскарадная",
+            "Ориентальная",
+            "Персидская",
+            "Русская голубая",
+            "Сиамская",
+            "Сибирская",
+            "Сфинкс",
+            "Шотландская вислоухая"
+        )
     }
 }

@@ -27,18 +27,20 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ExitToApp
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.ExitToApp
 import androidx.compose.material.icons.rounded.Pets
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -46,10 +48,14 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -77,6 +83,10 @@ import com.example.petsocial.core.ui.AuthenticatedImage
 import com.example.petsocial.core.ui.ErrorMessage
 import com.example.petsocial.core.ui.FullScreenLoading
 import com.example.petsocial.core.ui.SuccessMessage
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeParseException
 
 @Composable
 fun ProfileRoute(
@@ -123,14 +133,8 @@ fun ProfileRoute(
         onPetBioChanged = viewModel::onPetBioChanged,
         onPetPhotoSelected = viewModel::onPetPhotoSelected,
         onClearPetPhoto = viewModel::clearSelectedPetPhoto,
-        onPersonalityInputChanged = viewModel::onPersonalityInputChanged,
-        onAddPersonalityTag = viewModel::addPersonalityTag,
-        onRemovePersonalityTag = viewModel::removePersonalityTag,
-        onInterestInputChanged = viewModel::onInterestInputChanged,
-        onAddInterest = viewModel::addInterest,
-        onRemoveInterest = viewModel::removeInterest,
-        onPetHealthNotesChanged = viewModel::onPetHealthNotesChanged,
-        onPetMatchingGoalChanged = viewModel::onPetMatchingGoalChanged,
+        onTogglePersonalityTag = viewModel::togglePersonalityTag,
+        onToggleInterest = viewModel::toggleInterest,
         onSavePet = viewModel::savePet,
         onSetActivePet = viewModel::setActivePet
     )
@@ -164,14 +168,8 @@ private fun ProfileScreen(
     onPetBioChanged: (String) -> Unit,
     onPetPhotoSelected: (Uri?) -> Unit,
     onClearPetPhoto: () -> Unit,
-    onPersonalityInputChanged: (String) -> Unit,
-    onAddPersonalityTag: () -> Unit,
-    onRemovePersonalityTag: (String) -> Unit,
-    onInterestInputChanged: (String) -> Unit,
-    onAddInterest: () -> Unit,
-    onRemoveInterest: (String) -> Unit,
-    onPetHealthNotesChanged: (String) -> Unit,
-    onPetMatchingGoalChanged: (String) -> Unit,
+    onTogglePersonalityTag: (String) -> Unit,
+    onToggleInterest: (String) -> Unit,
     onSavePet: () -> Unit,
     onSetActivePet: (String) -> Unit
 ) {
@@ -226,7 +224,7 @@ private fun ProfileScreen(
                     onClick = onCreateHandlerProfileClick
                 )
                 SettingsAction(
-                    icon = Icons.Rounded.ExitToApp,
+                    icon = Icons.AutoMirrored.Rounded.ExitToApp,
                     label = "Выйти",
                     isDestructive = true,
                     onClick = onLogoutClick
@@ -265,14 +263,8 @@ private fun ProfileScreen(
                 onPetBioChanged = onPetBioChanged,
                 onPetPhotoSelected = onPetPhotoSelected,
                 onClearPetPhoto = onClearPetPhoto,
-                onPersonalityInputChanged = onPersonalityInputChanged,
-                onAddPersonalityTag = onAddPersonalityTag,
-                onRemovePersonalityTag = onRemovePersonalityTag,
-                onInterestInputChanged = onInterestInputChanged,
-                onAddInterest = onAddInterest,
-                onRemoveInterest = onRemoveInterest,
-                onPetHealthNotesChanged = onPetHealthNotesChanged,
-                onPetMatchingGoalChanged = onPetMatchingGoalChanged,
+                onTogglePersonalityTag = onTogglePersonalityTag,
+                onToggleInterest = onToggleInterest,
                 onSavePet = onSavePet,
                 onSetActivePet = onSetActivePet
             )
@@ -464,10 +456,7 @@ private fun CompactPetCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                StatusChip(
-                    label = pet.matching_goal ?: "В поиске пары",
-                    tone = ChipTone.Secondary
-                )
+                PetTagPreview(pet = pet)
             }
             Icon(Icons.Rounded.Edit, contentDescription = null, tint = PetPrimary)
         }
@@ -569,14 +558,8 @@ private fun PetsSheet(
     onPetBioChanged: (String) -> Unit,
     onPetPhotoSelected: (Uri?) -> Unit,
     onClearPetPhoto: () -> Unit,
-    onPersonalityInputChanged: (String) -> Unit,
-    onAddPersonalityTag: () -> Unit,
-    onRemovePersonalityTag: (String) -> Unit,
-    onInterestInputChanged: (String) -> Unit,
-    onAddInterest: () -> Unit,
-    onRemoveInterest: (String) -> Unit,
-    onPetHealthNotesChanged: (String) -> Unit,
-    onPetMatchingGoalChanged: (String) -> Unit,
+    onTogglePersonalityTag: (String) -> Unit,
+    onToggleInterest: (String) -> Unit,
     onSavePet: () -> Unit,
     onSetActivePet: (String) -> Unit
 ) {
@@ -592,14 +575,8 @@ private fun PetsSheet(
             onPetBioChanged = onPetBioChanged,
             onPetPhotoSelected = onPetPhotoSelected,
             onClearPetPhoto = onClearPetPhoto,
-            onPersonalityInputChanged = onPersonalityInputChanged,
-            onAddPersonalityTag = onAddPersonalityTag,
-            onRemovePersonalityTag = onRemovePersonalityTag,
-            onInterestInputChanged = onInterestInputChanged,
-            onAddInterest = onAddInterest,
-            onRemoveInterest = onRemoveInterest,
-            onPetHealthNotesChanged = onPetHealthNotesChanged,
-            onPetMatchingGoalChanged = onPetMatchingGoalChanged,
+            onTogglePersonalityTag = onTogglePersonalityTag,
+            onToggleInterest = onToggleInterest,
             onSavePet = onSavePet
         )
     } else {
@@ -688,10 +665,6 @@ private fun FullPetCard(
                 }
                 Icon(Icons.Rounded.Edit, contentDescription = null, tint = PetPrimary)
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatusChip(label = pet.matching_goal ?: "В поиске друзей", tone = ChipTone.Primary)
-                StatusChip(label = pet.health_notes ?: "Здоровье", tone = ChipTone.Info)
-            }
             if (pet.personality_tags.isNotEmpty()) {
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -699,6 +672,16 @@ private fun FullPetCard(
                 ) {
                     pet.personality_tags.forEach { tag ->
                         StatusChip(label = tag, tone = ChipTone.Neutral)
+                    }
+                }
+            }
+            if (pet.interests.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    pet.interests.forEach { tag ->
+                        StatusChip(label = tag, tone = ChipTone.Info)
                     }
                 }
             }
@@ -723,14 +706,8 @@ private fun PetForm(
     onPetBioChanged: (String) -> Unit,
     onPetPhotoSelected: (Uri?) -> Unit,
     onClearPetPhoto: () -> Unit,
-    onPersonalityInputChanged: (String) -> Unit,
-    onAddPersonalityTag: () -> Unit,
-    onRemovePersonalityTag: (String) -> Unit,
-    onInterestInputChanged: (String) -> Unit,
-    onAddInterest: () -> Unit,
-    onRemoveInterest: (String) -> Unit,
-    onPetHealthNotesChanged: (String) -> Unit,
-    onPetMatchingGoalChanged: (String) -> Unit,
+    onTogglePersonalityTag: (String) -> Unit,
+    onToggleInterest: (String) -> Unit,
     onSavePet: () -> Unit
 ) {
     val picker = rememberLauncherForActivityResult(
@@ -754,10 +731,37 @@ private fun PetForm(
             )
         }
         item { OutlinedTextField(uiState.petName, onPetNameChanged, Modifier.fillMaxWidth(), label = { Text("Имя") }, singleLine = true) }
-        item { OutlinedTextField(uiState.petSpecies, onPetSpeciesChanged, Modifier.fillMaxWidth(), label = { Text("Вид") }, singleLine = true) }
-        item { OutlinedTextField(uiState.petBreed, onPetBreedChanged, Modifier.fillMaxWidth(), label = { Text("Порода") }, singleLine = true) }
-        item { OutlinedTextField(uiState.petSex, onPetSexChanged, Modifier.fillMaxWidth(), label = { Text("Пол") }, singleLine = true) }
-        item { OutlinedTextField(uiState.petBirthDate, onPetBirthDateChanged, Modifier.fillMaxWidth(), label = { Text("Дата рождения YYYY-MM-DD") }, singleLine = true) }
+        item {
+            SelectableChipGroup(
+                title = "Вид",
+                options = speciesOptions,
+                selected = listOf(uiState.petSpecies),
+                onToggle = onPetSpeciesChanged,
+                singleSelection = true
+            )
+        }
+        item {
+            BreedAutocompleteField(
+                species = uiState.petSpecies,
+                value = uiState.petBreed,
+                onValueChange = onPetBreedChanged
+            )
+        }
+        item {
+            SelectableChipGroup(
+                title = "Пол",
+                options = sexOptions,
+                selected = listOf(uiState.petSex),
+                onToggle = onPetSexChanged,
+                singleSelection = true
+            )
+        }
+        item {
+            PetDatePickerField(
+                value = uiState.petBirthDate,
+                onValueChange = onPetBirthDateChanged
+            )
+        }
         item { OutlinedTextField(uiState.petBio, onPetBioChanged, Modifier.fillMaxWidth(), label = { Text("Описание") }, minLines = 2) }
         item {
             OutlinedButton(
@@ -797,27 +801,21 @@ private fun PetForm(
             }
         }
         item {
-            ChipEditor(
+            SelectableChipGroup(
                 title = "Характер",
-                input = uiState.petPersonalityInput,
-                chips = uiState.petPersonalityTags,
-                onInputChanged = onPersonalityInputChanged,
-                onAdd = onAddPersonalityTag,
-                onRemove = onRemovePersonalityTag
+                options = personalityTagOptions,
+                selected = uiState.petPersonalityTags,
+                onToggle = onTogglePersonalityTag
             )
         }
         item {
-            ChipEditor(
+            SelectableChipGroup(
                 title = "Интересы",
-                input = uiState.petInterestInput,
-                chips = uiState.petInterests,
-                onInputChanged = onInterestInputChanged,
-                onAdd = onAddInterest,
-                onRemove = onRemoveInterest
+                options = interestOptions,
+                selected = uiState.petInterests,
+                onToggle = onToggleInterest
             )
         }
-        item { OutlinedTextField(uiState.petMatchingGoal, onPetMatchingGoalChanged, Modifier.fillMaxWidth(), label = { Text("Цель поиска") }, singleLine = true) }
-        item { OutlinedTextField(uiState.petHealthNotes, onPetHealthNotesChanged, Modifier.fillMaxWidth(), label = { Text("Здоровье") }, minLines = 2) }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f), enabled = !uiState.isSavingPet) {
@@ -832,51 +830,142 @@ private fun PetForm(
 }
 
 @Composable
-private fun ChipEditor(
+private fun SelectableChipGroup(
     title: String,
-    input: String,
-    chips: List<String>,
-    onInputChanged: (String) -> Unit,
-    onAdd: () -> Unit,
-    onRemove: (String) -> Unit
+    options: List<String>,
+    selected: List<String>,
+    onToggle: (String) -> Unit,
+    singleSelection: Boolean = false
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                value = input,
-                onValueChange = onInputChanged,
-                modifier = Modifier.weight(1f),
-                label = { Text("Добавить тег") },
-                singleLine = true
-            )
-            IconButton(onClick = onAdd) {
-                Icon(Icons.Rounded.Add, contentDescription = null, tint = PetPrimary)
-            }
-        }
-        if (chips.isNotEmpty()) {
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                chips.forEach { chip ->
-                    Surface(
-                        shape = RoundedCornerShape(18.dp),
-                        color = PetPrimaryLight,
-                        modifier = Modifier.clickable { onRemove(chip) }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(chip, style = MaterialTheme.typography.labelMedium, color = PetPrimary)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(Icons.Rounded.Close, contentDescription = null, tint = PetPrimary, modifier = Modifier.size(14.dp))
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            options.forEach { option ->
+                val isSelected = option in selected
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = if (isSelected) PetPrimary else PetSurface,
+                    border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, PetOutline),
+                    modifier = Modifier.clickable {
+                        if (!singleSelection || !isSelected) {
+                            onToggle(option)
                         }
                     }
+                ) {
+                    Text(
+                        text = option,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (isSelected) PetSurface else PetOnSurface
+                    )
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BreedAutocompleteField(
+    species: String,
+    value: String,
+    onValueChange: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val options = remember(species) { breedOptionsFor(species) }
+    val suggestions = remember(value, options) {
+        val query = value.trim()
+        if (query.isBlank()) {
+            options.take(6)
+        } else {
+            options.filter { it.contains(query, ignoreCase = true) }.take(6)
+        }
+    }
+
+    Box {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {
+                onValueChange(it)
+                expanded = true
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = true },
+            label = { Text("Порода") },
+            singleLine = true
+        )
+        DropdownMenu(
+            expanded = expanded && suggestions.isNotEmpty(),
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.fillMaxWidth(0.92f)
+        ) {
+            suggestions.forEach { breed ->
+                DropdownMenuItem(
+                    text = { Text(breed) },
+                    onClick = {
+                        onValueChange(breed)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PetDatePickerField(
+    value: String,
+    onValueChange: (String) -> Unit
+) {
+    var isOpen by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = value.toEpochMillisOrNull())
+
+    OutlinedButton(
+        onClick = { isOpen = true },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(value.ifBlank { "Выбрать дату рождения" })
+    }
+
+    if (isOpen) {
+        DatePickerDialog(
+            onDismissRequest = { isOpen = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            onValueChange(millis.toIsoDate())
+                        }
+                        isOpen = false
+                    }
+                ) {
+                    Text("Готово")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { isOpen = false }) {
+                    Text("Отмена")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+}
+
+@Composable
+private fun PetTagPreview(pet: PetResponse) {
+    val label = pet.personality_tags.firstOrNull() ?: pet.interests.firstOrNull()
+    if (label != null) {
+        StatusChip(
+            label = label,
+            tone = if (pet.personality_tags.isNotEmpty()) ChipTone.Neutral else ChipTone.Info
+        )
     }
 }
 
@@ -913,4 +1002,71 @@ private fun petSubtitle(pet: PetResponse): String {
         pet.sex,
         pet.birth_date?.take(4)
     ).joinToString(", ").ifBlank { pet.species }
+}
+
+private val speciesOptions = listOf("Собака", "Кошка")
+private val sexOptions = listOf("Мальчик", "Девочка")
+private val personalityTagOptions = listOf("Веселый", "Спокойный", "Активный", "Ласковый", "Игривый", "Общительный")
+private val interestOptions = listOf("Прогулки", "Бег", "Игры", "Парк", "Тренировки", "Путешествия")
+
+private val dogBreedOptions = listOf(
+    "Акита-ину",
+    "Бигль",
+    "Бордер-колли",
+    "Вельш-корги",
+    "Джек-рассел-терьер",
+    "Золотистый ретривер",
+    "Йоркширский терьер",
+    "Лабрадор",
+    "Мопс",
+    "Немецкая овчарка",
+    "Померанский шпиц",
+    "Пудель",
+    "Самоед",
+    "Сиба-ину",
+    "Такса",
+    "Французский бульдог",
+    "Хаски",
+    "Чихуахуа",
+    "Шпиц"
+)
+
+private val catBreedOptions = listOf(
+    "Абиссинская",
+    "Бенгальская",
+    "Британская короткошерстная",
+    "Мейн-кун",
+    "Невская маскарадная",
+    "Ориентальная",
+    "Персидская",
+    "Русская голубая",
+    "Сиамская",
+    "Сибирская",
+    "Сфинкс",
+    "Шотландская вислоухая"
+)
+
+private fun breedOptionsFor(species: String): List<String> {
+    return when (species) {
+        "Кошка" -> catBreedOptions
+        else -> dogBreedOptions
+    }
+}
+
+private fun String.toEpochMillisOrNull(): Long? {
+    return try {
+        LocalDate.parse(this)
+            .atStartOfDay(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+    } catch (_: DateTimeParseException) {
+        null
+    }
+}
+
+private fun Long.toIsoDate(): String {
+    return Instant.ofEpochMilli(this)
+        .atZone(ZoneId.systemDefault())
+        .toLocalDate()
+        .toString()
 }
