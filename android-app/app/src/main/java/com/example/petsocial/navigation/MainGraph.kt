@@ -38,7 +38,6 @@ import com.example.petsocial.feature.feed.FeedRoute
 import com.example.petsocial.feature.handlers.HandlerProfileRoute
 import com.example.petsocial.feature.handlers.HandlersRoute
 import com.example.petsocial.feature.matching.MatchingRoute
-import com.example.petsocial.feature.pets.PetsRoute
 import com.example.petsocial.feature.profile.ProfileRoute
 import com.example.petsocial.feature.routine.RoutineRoute
 
@@ -82,7 +81,9 @@ private fun MainScaffold(
     Scaffold(
         containerColor = PetBackground,
         topBar = {
-            PetSocialTopBar(title = titleForRoute(currentRoute, isHandler))
+            if (currentRoute != AppRoutes.Profile) {
+                PetSocialTopBar(title = titleForRoute(currentRoute, isHandler))
+            }
         },
         bottomBar = {
             PetSocialBottomBar(navController = navController, isHandler = isHandler)
@@ -120,28 +121,17 @@ private fun OwnerProfileRoute(
     onLogoutClick: () -> Unit,
     onCreateHandlerProfileClick: () -> Unit
 ) {
-    var selectedTab by rememberSaveable { mutableStateOf(0) }
-    val tabs = listOf("Профиль", "Питомцы")
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        ProductTabRow(selectedTab = selectedTab, tabs = tabs) { selectedTab = it }
-
-        when (selectedTab) {
-            0 -> ProfileRoute(
-                onLogoutClick = onLogoutClick,
-                onUnauthorized = onLogoutClick,
-                onCreateHandlerProfileClick = onCreateHandlerProfileClick
-            )
-
-            1 -> PetsRoute()
-        }
-    }
+    ProfileRoute(
+        onLogoutClick = onLogoutClick,
+        onUnauthorized = onLogoutClick,
+        onCreateHandlerProfileClick = onCreateHandlerProfileClick
+    )
 }
 
 @Composable
 private fun CareRoute() {
     var selectedTab by rememberSaveable { mutableStateOf(0) }
-    val tabs = listOf("Рутина", "Услуги")
+    val tabs = listOf("Р СѓС‚РёРЅР°", "РЈСЃР»СѓРіРё")
 
     Column(modifier = Modifier.fillMaxSize()) {
         ProductTabRow(selectedTab = selectedTab, tabs = tabs) { selectedTab = it }
@@ -178,12 +168,12 @@ private fun ProductTabRow(
 
 private fun titleForRoute(route: String?, isHandler: Boolean): String {
     return when (route) {
-        AppRoutes.Profile -> "Профиль"
-        AppRoutes.Feed -> "Лента"
-        AppRoutes.Matching -> "Найти пару"
-        AppRoutes.Chats -> "Сообщения"
-        AppRoutes.Care -> "Уход"
-        AppRoutes.Handlers -> if (isHandler) "Работа" else "Услуги"
+        AppRoutes.Profile -> "РџСЂРѕС„РёР»СЊ"
+        AppRoutes.Feed -> "Р›РµРЅС‚Р°"
+        AppRoutes.Matching -> "РќР°Р№С‚Рё РїР°СЂСѓ"
+        AppRoutes.Chats -> "РЎРѕРѕР±С‰РµРЅРёСЏ"
+        AppRoutes.Care -> "РЈС…РѕРґ"
+        AppRoutes.Handlers -> if (isHandler) "Р Р°Р±РѕС‚Р°" else "РЈСЃР»СѓРіРё"
         else -> "PetSocial"
     }
 }
