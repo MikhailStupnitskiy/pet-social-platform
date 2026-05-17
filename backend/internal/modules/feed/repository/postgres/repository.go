@@ -64,9 +64,20 @@ func (r *Repository) List(ctx context.Context, userID string, limit int) ([]doma
 			sp.id,
 			sp.author_user_id,
 			COALESCE(up.name, ''),
+			u.email,
+			up.city,
+			up.bio,
+			up.avatar_url,
 			sp.pet_id,
 			p.name,
 			p.species,
+			p.breed,
+			p.sex,
+			p.birth_date,
+			p.bio,
+			p.photo_url,
+			COALESCE(p.personality_tags, '{}'),
+			COALESCE(p.interests, '{}'),
 			sp.body,
 			sp.image_url,
 			COALESCE(cc.comments_count, 0),
@@ -80,6 +91,7 @@ func (r *Repository) List(ctx context.Context, userID string, limit int) ([]doma
 			sp.updated_at
 		FROM social_posts sp
 		JOIN pets p ON p.id = sp.pet_id
+		JOIN users u ON u.id = sp.author_user_id
 		LEFT JOIN user_profiles up ON up.user_id = sp.author_user_id
 		LEFT JOIN (
 			SELECT post_id, COUNT(*) AS comments_count
@@ -128,9 +140,20 @@ func (r *Repository) GetByID(ctx context.Context, id string, userID string) (*do
 			sp.id,
 			sp.author_user_id,
 			COALESCE(up.name, ''),
+			u.email,
+			up.city,
+			up.bio,
+			up.avatar_url,
 			sp.pet_id,
 			p.name,
 			p.species,
+			p.breed,
+			p.sex,
+			p.birth_date,
+			p.bio,
+			p.photo_url,
+			COALESCE(p.personality_tags, '{}'),
+			COALESCE(p.interests, '{}'),
 			sp.body,
 			sp.image_url,
 			COALESCE(cc.comments_count, 0),
@@ -144,6 +167,7 @@ func (r *Repository) GetByID(ctx context.Context, id string, userID string) (*do
 			sp.updated_at
 		FROM social_posts sp
 		JOIN pets p ON p.id = sp.pet_id
+		JOIN users u ON u.id = sp.author_user_id
 		LEFT JOIN user_profiles up ON up.user_id = sp.author_user_id
 		LEFT JOIN (
 			SELECT post_id, COUNT(*) AS comments_count
@@ -460,9 +484,20 @@ func scanPost(scanner postScanner) (domain.Post, error) {
 		&post.ID,
 		&post.AuthorUserID,
 		&post.AuthorName,
+		&post.AuthorEmail,
+		&post.AuthorCity,
+		&post.AuthorBio,
+		&post.AuthorAvatarURL,
 		&post.PetID,
 		&post.PetName,
 		&post.PetSpecies,
+		&post.PetBreed,
+		&post.PetSex,
+		&post.PetBirthDate,
+		&post.PetBio,
+		&post.PetPhotoURL,
+		&post.PetPersonalityTags,
+		&post.PetInterests,
 		&post.Body,
 		&post.ImageURL,
 		&commentsCount,
@@ -487,6 +522,8 @@ func scanPost(scanner postScanner) (domain.Post, error) {
 		"funny":   int(funnyCount),
 		"support": int(supportCount),
 	}
+	post.PetPersonalityTags = normalizeList(post.PetPersonalityTags)
+	post.PetInterests = normalizeList(post.PetInterests)
 
 	return post, nil
 }
@@ -508,4 +545,14 @@ func scanComment(scanner postScanner) (domain.Comment, error) {
 	}
 
 	return comment, nil
+}
+
+func normalizeList(values []string) []string {
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if value != "" {
+			result = append(result, value)
+		}
+	}
+	return result
 }
