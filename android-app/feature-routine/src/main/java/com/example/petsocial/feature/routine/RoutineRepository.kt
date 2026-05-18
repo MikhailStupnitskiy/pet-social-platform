@@ -12,8 +12,11 @@ interface RoutineRepository {
         title: String,
         category: String,
         scheduleTime: String?,
+        repeatRule: String,
         notes: String?
     ): RoutineItemResponse
 
     suspend fun completeRoutineItem(id: String): CompletionResponse
+
+    suspend fun deleteRoutineItem(id: String)
 }

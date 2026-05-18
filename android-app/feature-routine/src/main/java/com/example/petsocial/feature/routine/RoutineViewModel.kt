@@ -1,28 +1,47 @@
 package com.example.petsocial.feature.routine
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petsocial.core.common.result.AppError
+import com.example.petsocial.core.common.result.AppResult
+import com.example.petsocial.core.common.result.safeApiCall
+import com.example.petsocial.core.common.session.SessionEventBus
+import com.example.petsocial.core.network.api.HandlersApi
 import com.example.petsocial.core.network.api.PetsApi
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import com.example.petsocial.core.common.result.AppResult
-import com.example.petsocial.core.common.result.safeApiCall
-import com.example.petsocial.core.common.session.SessionEventBus
 
 @HiltViewModel
 class RoutineViewModel @Inject constructor(
     private val repository: RoutineRepository,
     private val petsApi: PetsApi,
-    private val sessionEventBus: SessionEventBus
+    private val handlersApi: HandlersApi,
+    private val sessionEventBus: SessionEventBus,
+    @ApplicationContext appContext: Context
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(RoutineUiState(isLoading = true))
+    private val completionPrefs = appContext.getSharedPreferences(COMPLETION_PREFS_NAME, Context.MODE_PRIVATE)
+
+    private val _uiState = MutableStateFlow(
+        RoutineUiState(
+            isLoading = true,
+            completedRoutineOccurrences = completionPrefs.getStringSet(COMPLETION_KEYS_PREF, emptySet()).orEmpty()
+        )
+    )
     val uiState: StateFlow<RoutineUiState> = _uiState.asStateFlow()
+
+    private fun saveCompletedOccurrences(values: Set<String>) {
+        completionPrefs.edit()
+            .putStringSet(COMPLETION_KEYS_PREF, values)
+            .apply()
+    }
 
     private fun handleUnauthorized(error: AppError): Boolean {
         if (error is AppError.Unauthorized) {
@@ -62,23 +81,31 @@ class RoutineViewModel @Inject constructor(
                         return@launch
                     }
 
-                    when (val routineResult = safeApiCall { repository.getRoutine(activePet.id) }) {
-                        is AppResult.Success -> {
-                            _uiState.value = _uiState.value.copy(
-                                isLoading = false,
-                                activePet = activePet,
-                                items = routineResult.data
-                            )
-                        }
+                    val routineResult = safeApiCall { repository.getRoutine(activePet.id) }
+                    val requestsResult = safeApiCall { handlersApi.getServiceRequests(role = "client") }
 
-                        is AppResult.Error -> {
-                            _uiState.value = _uiState.value.copy(
-                                isLoading = false,
-                                activePet = activePet,
-                                errorMessage = routineResult.error.message
-                            )
-                        }
+                    if (routineResult is AppResult.Error && handleUnauthorized(routineResult.error)) {
+                        return@launch
                     }
+                    if (requestsResult is AppResult.Error && handleUnauthorized(requestsResult.error)) {
+                        return@launch
+                    }
+
+                    if (routineResult is AppResult.Error) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            activePet = activePet,
+                            errorMessage = routineResult.error.message
+                        )
+                        return@launch
+                    }
+
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        activePet = activePet,
+                        items = (routineResult as AppResult.Success).data,
+                        serviceRequests = (requestsResult as? AppResult.Success)?.data.orEmpty()
+                    )
                 }
             }
         }
@@ -116,6 +143,26 @@ class RoutineViewModel @Inject constructor(
         )
     }
 
+    fun onRepeatRuleChanged(value: String) {
+        _uiState.value = _uiState.value.copy(
+            repeatRule = value,
+            errorMessage = null,
+            successMessage = null
+        )
+    }
+
+    fun onSelectedDateChanged(value: LocalDate) {
+        _uiState.value = _uiState.value.copy(selectedDate = value, successMessage = null)
+    }
+
+    fun showCreateSheet() {
+        _uiState.value = _uiState.value.copy(isCreateSheetVisible = true, errorMessage = null, successMessage = null)
+    }
+
+    fun hideCreateSheet() {
+        _uiState.value = _uiState.value.copy(isCreateSheetVisible = false)
+    }
+
     fun createRoutineItem() {
         val state = _uiState.value
         val activePet = state.activePet
@@ -149,6 +196,7 @@ class RoutineViewModel @Inject constructor(
                         title = state.title.trim(),
                         category = state.category.trim(),
                         scheduleTime = state.scheduleTime.trim().ifBlank { null },
+                        repeatRule = state.repeatRule,
                         notes = state.notes.trim().ifBlank { null }
                     )
                 }
@@ -157,9 +205,11 @@ class RoutineViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         isCreating = false,
                         title = "",
-                        category = "",
+                        category = "walk",
                         scheduleTime = "",
+                        repeatRule = "none",
                         notes = "",
+                        isCreateSheetVisible = false,
                         successMessage = "Задача создана"
                     )
 
@@ -177,6 +227,7 @@ class RoutineViewModel @Inject constructor(
     }
 
     fun completeRoutineItem(id: String) {
+        val selectedDate = _uiState.value.selectedDate
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isCompleting = true,
@@ -186,8 +237,12 @@ class RoutineViewModel @Inject constructor(
 
             when (val result = safeApiCall { repository.completeRoutineItem(id) }) {
                 is AppResult.Success -> {
+                    val completedOccurrences = _uiState.value.completedRoutineOccurrences + routineOccurrenceKey(id, selectedDate)
+                    saveCompletedOccurrences(completedOccurrences)
+
                     _uiState.value = _uiState.value.copy(
                         isCompleting = false,
+                        completedRoutineOccurrences = completedOccurrences,
                         successMessage = "Задача выполнена"
                     )
                 }
@@ -201,4 +256,42 @@ class RoutineViewModel @Inject constructor(
             }
         }
     }
+
+    fun deleteRoutineItem(id: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isDeleting = true,
+                errorMessage = null,
+                successMessage = null
+            )
+
+            when (val result = safeApiCall { repository.deleteRoutineItem(id) }) {
+                is AppResult.Success -> {
+                    val completedOccurrences = _uiState.value.completedRoutineOccurrences
+                        .filterNot { it.startsWith("$id|") }
+                        .toSet()
+                    saveCompletedOccurrences(completedOccurrences)
+
+                    _uiState.value = _uiState.value.copy(
+                        isDeleting = false,
+                        items = _uiState.value.items.filterNot { it.id == id },
+                        completedRoutineOccurrences = completedOccurrences,
+                        successMessage = "Задача удалена"
+                    )
+                }
+
+                is AppResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isDeleting = false,
+                        errorMessage = result.error.message
+                    )
+                }
+            }
+        }
+    }
 }
+
+fun routineOccurrenceKey(id: String, date: LocalDate): String = "$id|$date"
+
+private const val COMPLETION_PREFS_NAME = "routine_completion_preferences"
+private const val COMPLETION_KEYS_PREF = "completed_occurrence_keys"

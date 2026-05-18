@@ -1,6 +1,7 @@
 package com.example.petsocial.feature.handlers
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,7 +14,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -21,6 +24,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -331,14 +335,11 @@ private fun LazyListScope.searchContent(
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp)
             )
-            OutlinedTextField(
-                value = uiState.serviceTypeFilter,
-                onValueChange = onServiceTypeFilterChanged,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Тип услуги") },
-                placeholder = { Text("walking, sitting, grooming") },
-                singleLine = true,
-                shape = RoundedCornerShape(16.dp)
+            ServiceTypeSelector(
+                title = "Тип услуги",
+                selected = uiState.serviceTypeFilter,
+                includeAny = true,
+                onSelected = onServiceTypeFilterChanged
             )
             OutlinedTextField(
                 value = uiState.minRatingFilter,
@@ -816,21 +817,17 @@ private fun ServiceForm(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(
-            value = uiState.serviceType,
-            onValueChange = onServiceTypeChanged,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Тип услуги") },
-            placeholder = { Text("walking, sitting, grooming") },
-            singleLine = true,
-            shape = RoundedCornerShape(16.dp)
-        )
-        OutlinedTextField(
             value = uiState.serviceTitle,
             onValueChange = onServiceTitleChanged,
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Название") },
             singleLine = true,
             shape = RoundedCornerShape(16.dp)
+        )
+        ServiceTypeSelector(
+            title = "Тип услуги",
+            selected = uiState.serviceType,
+            onSelected = onServiceTypeChanged
         )
         OutlinedTextField(
             value = uiState.servicePriceRub,
@@ -944,6 +941,9 @@ private fun RequestCard(
         request.review?.let { review ->
             Text("Отзыв: ${review.rating}/5 ${review.body.orEmpty()}")
         }
+        if (role == "client" && request.status == "completed" && request.review != null) {
+            StatusChip(label = "Отзыв оставлен", tone = ChipTone.Secondary)
+        }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (role == "client" && (request.status == "pending" || request.status == "accepted")) {
@@ -1003,13 +1003,59 @@ private fun formatPrice(priceCents: Int): String {
     return "${priceCents / 100} руб."
 }
 
+@Composable
+private fun ServiceTypeSelector(
+    title: String,
+    selected: String,
+    includeAny: Boolean = false,
+    onSelected: (String) -> Unit
+) {
+    val options = if (includeAny) listOf(ServiceTypeOption("", "Все")) + serviceTypeOptions else serviceTypeOptions
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            options.forEach { option ->
+                val isSelected = selected == option.value
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = if (isSelected) PetPrimary else Color.White,
+                    border = if (isSelected) null else BorderStroke(1.dp, androidx.compose.ui.graphics.Color(0xFFE7E1DA)),
+                    modifier = Modifier.clickable { onSelected(option.value) }
+                ) {
+                    Text(
+                        text = option.label,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
+private data class ServiceTypeOption(val value: String, val label: String)
+
+private val serviceTypeOptions = listOf(
+    ServiceTypeOption("walking", "Прогулки"),
+    ServiceTypeOption("sitting", "Передержка"),
+    ServiceTypeOption("training", "Тренировки"),
+    ServiceTypeOption("grooming", "Груминг"),
+    ServiceTypeOption("other", "Другое")
+)
+
 private fun serviceTypeLabel(type: String): String {
     return when (type) {
         "walking" -> "Прогулки"
         "sitting" -> "Передержка"
         "training" -> "Тренировки"
         "grooming" -> "Груминг"
-        else -> "Уход"
+        else -> "Другое"
     }
 }
 

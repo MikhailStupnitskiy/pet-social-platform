@@ -195,7 +195,7 @@ private fun CareRoute(
     onPetProfileClick: (String) -> Unit
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(0) }
-    val tabs = listOf("Р СѓС‚РёРЅР°", "РЈСЃР»СѓРіРё")
+    val tabs = listOf("Рутина", "Услуги")
 
     Column(modifier = Modifier.fillMaxSize()) {
         ProductTabRow(selectedTab = selectedTab, tabs = tabs) { selectedTab = it }
@@ -240,12 +240,12 @@ private fun titleForRoute(route: String?, isHandler: Boolean): String {
     }
 
     return when (route) {
-        AppRoutes.Profile -> "РџСЂРѕС„РёР»СЊ"
-        AppRoutes.Feed -> "Р›РµРЅС‚Р°"
-        AppRoutes.Matching -> "РќР°Р№С‚Рё РїР°СЂСѓ"
-        AppRoutes.Chats -> "РЎРѕРѕР±С‰РµРЅРёСЏ"
-        AppRoutes.Care -> "РЈС…РѕРґ"
-        AppRoutes.Handlers -> if (isHandler) "Р Р°Р±РѕС‚Р°" else "РЈСЃР»СѓРіРё"
+        AppRoutes.Profile -> "Профиль"
+        AppRoutes.Feed -> "Лента"
+        AppRoutes.Matching -> "Найти пару"
+        AppRoutes.Chats -> "Сообщения"
+        AppRoutes.Care -> "Уход"
+        AppRoutes.Handlers -> if (isHandler) "Работа" else "Услуги"
         else -> "PetSocial"
     }
 }

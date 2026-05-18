@@ -5,6 +5,7 @@ import com.example.petsocial.core.network.model.routine.CreateRoutineItemRequest
 import com.example.petsocial.core.network.model.routine.RoutineItemResponse
 import com.example.petsocial.core.network.model.routine.UpdateRoutineItemRequest
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.POST
@@ -33,4 +34,9 @@ interface RoutineApi {
     suspend fun completeRoutineItem(
         @Path("id") id: String
     ): CompletionResponse
+
+    @DELETE("v1/routine/{id}")
+    suspend fun deleteRoutineItem(
+        @Path("id") id: String
+    )
 }

@@ -51,6 +51,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.petsocial.core.designsystem.component.ChipTone
 import com.example.petsocial.core.designsystem.component.MessageBubble
 import com.example.petsocial.core.designsystem.component.PetChip
@@ -69,9 +71,9 @@ import com.example.petsocial.core.designsystem.theme.PetSurface
 import com.example.petsocial.core.designsystem.theme.PetTextSecondary
 import com.example.petsocial.core.network.model.chat.ChatResponse
 import com.example.petsocial.core.network.model.chat.MessageResponse
-import com.example.petsocial.core.ui.AuthenticatedImage
-import com.example.petsocial.core.ui.ErrorMessage
-import com.example.petsocial.core.ui.FullScreenLoading
+import okhttp3.Headers
+
+private const val CHAT_API_BASE_URL = "http://192.168.1.68:8080/"
 
 private enum class ChatFilter(val label: String) {
     All("\u0412\u0441\u0435"),
@@ -190,14 +192,14 @@ private fun ChatsListScreen(
         }
 
         if (uiState.isLoading) {
-            item { FullScreenLoading() }
+            item { ChatLoading() }
             return@LazyColumn
         }
 
         uiState.errorMessage?.let { message ->
             item {
                 ProductCard(modifier = Modifier.fillMaxWidth()) {
-                    ErrorMessage(message)
+                    ChatError(message)
                     Button(onClick = onRetryClick) { Text("\u041f\u043e\u0432\u0442\u043e\u0440\u0438\u0442\u044c") }
                 }
             }
@@ -382,7 +384,7 @@ private fun MessagesScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp)
             ) {
                 uiState.errorMessage?.let { message ->
-                    item { ErrorMessage(message = message) }
+                    item { ChatError(message = message) }
                 }
 
                 if (uiState.messages.isEmpty()) {
@@ -552,7 +554,7 @@ private fun ChatAvatar(
         contentAlignment = Alignment.Center
     ) {
         if (!imageUrl.isNullOrBlank()) {
-            AuthenticatedImage(
+            ChatAuthenticatedImage(
                 imageUrl = imageUrl,
                 authToken = authToken,
                 contentDescription = contentDescription,
@@ -568,6 +570,65 @@ private fun ChatAvatar(
             )
         }
     }
+}
+
+@Composable
+private fun ChatLoading() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(220.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun ChatError(message: String) {
+    Text(text = message, color = MaterialTheme.colorScheme.error)
+}
+
+@Composable
+private fun ChatAuthenticatedImage(
+    imageUrl: String?,
+    authToken: String?,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val resolvedUrl = remember(imageUrl) {
+        imageUrl?.takeIf { it.isNotBlank() }?.let { url ->
+            if (url.startsWith("http://") || url.startsWith("https://")) {
+                url
+            } else {
+                CHAT_API_BASE_URL.trimEnd('/') + "/" + url.trimStart('/')
+            }
+        }
+    }
+    val model = remember(context, resolvedUrl, authToken) {
+        resolvedUrl?.let { url ->
+            val builder = ImageRequest.Builder(context)
+                .data(url)
+                .crossfade(true)
+            if (!authToken.isNullOrBlank()) {
+                builder.headers(
+                    Headers.Builder()
+                        .add("Authorization", "Bearer $authToken")
+                        .build()
+                )
+            }
+            builder.build()
+        }
+    }
+
+    AsyncImage(
+        model = model,
+        contentDescription = contentDescription,
+        contentScale = contentScale,
+        modifier = modifier
+    )
 }
 
 @Composable

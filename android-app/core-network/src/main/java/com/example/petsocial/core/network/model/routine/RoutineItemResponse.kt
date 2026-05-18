@@ -6,6 +6,7 @@ data class RoutineItemResponse(
     val title: String,
     val category: String,
     val schedule_time: String?,
+    val repeat_rule: String = "none",
     val notes: String?,
     val is_enabled: Boolean,
     val created_at: String,

@@ -60,6 +60,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.retrofit)
+    implementation(libs.coil.compose)
+    implementation(libs.okhttp)
 
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)

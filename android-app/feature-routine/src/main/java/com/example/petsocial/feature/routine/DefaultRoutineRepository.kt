@@ -19,6 +19,7 @@ class DefaultRoutineRepository @Inject constructor(
         title: String,
         category: String,
         scheduleTime: String?,
+        repeatRule: String,
         notes: String?
     ): RoutineItemResponse {
         return routineApi.createRoutineItem(
@@ -27,6 +28,7 @@ class DefaultRoutineRepository @Inject constructor(
                 title = title,
                 category = category,
                 schedule_time = scheduleTime,
+                repeat_rule = repeatRule,
                 notes = notes
             )
         )
@@ -34,5 +36,9 @@ class DefaultRoutineRepository @Inject constructor(
 
     override suspend fun completeRoutineItem(id: String): CompletionResponse {
         return routineApi.completeRoutineItem(id)
+    }
+
+    override suspend fun deleteRoutineItem(id: String) {
+        routineApi.deleteRoutineItem(id)
     }
 }

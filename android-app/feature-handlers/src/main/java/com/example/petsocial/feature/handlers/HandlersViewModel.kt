@@ -108,6 +108,16 @@ class HandlersViewModel @Inject constructor(
     }
 
     fun startReview(request: ServiceRequestResponse) {
+        if (request.review != null) {
+            _uiState.value = _uiState.value.copy(
+                reviewRequestId = null,
+                reviewBody = "",
+                successMessage = "Отзыв уже оставлен",
+                errorMessage = null
+            )
+            return
+        }
+
         _uiState.value = _uiState.value.copy(
             selectedTab = 1,
             reviewRequestId = request.id,
