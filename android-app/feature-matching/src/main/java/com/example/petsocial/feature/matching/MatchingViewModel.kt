@@ -1,13 +1,15 @@
-package com.example.petsocial.feature.matching
+﻿package com.example.petsocial.feature.matching
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petsocial.core.common.result.AppError
 import com.example.petsocial.core.network.api.PetsApi
+import com.example.petsocial.core.datastore.auth.TokenStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.example.petsocial.core.common.result.AppResult
@@ -18,11 +20,20 @@ import com.example.petsocial.core.common.session.SessionEventBus
 class MatchingViewModel @Inject constructor(
     private val repository: MatchingRepository,
     private val petsApi: PetsApi,
+    private val tokenStorage: TokenStorage,
     private val sessionEventBus: SessionEventBus
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MatchingUiState(isLoading = true))
     val uiState: StateFlow<MatchingUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            tokenStorage.token.collect { token ->
+                _uiState.value = _uiState.value.copy(authToken = token)
+            }
+        }
+    }
 
     private fun handleUnauthorized(error: AppError): Boolean {
         if (error is AppError.Unauthorized) {
@@ -68,7 +79,12 @@ class MatchingViewModel @Inject constructor(
                     }
 
                     val recommendationsResult = safeApiCall {
-                        repository.getRecommendations(activePet.id)
+                        repository.getRecommendations(
+                            petId = activePet.id,
+                            goal = _uiState.value.goal,
+                            filters = _uiState.value.filters,
+                            species = activePet.species
+                        )
                     }
 
                     val matchesResult = safeApiCall {
@@ -93,13 +109,77 @@ class MatchingViewModel @Inject constructor(
 
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        activePet = activePet,
-                        recommendations = (recommendationsResult as AppResult.Success).data,
-                        matches = (matchesResult as AppResult.Success).data
+                            activePet = activePet,
+                            recommendations = (recommendationsResult as AppResult.Success).data,
+                            matches = (matchesResult as AppResult.Success).data,
+                            locationMessage = locationMessageFor(activePet.latitude, activePet.longitude)
+                        )
+                }
+            }
+        }
+    }
+
+    fun selectGoal(goal: MatchingGoal) {
+        if (_uiState.value.goal == goal) return
+        _uiState.value = _uiState.value.copy(goal = goal, successMessage = null, errorMessage = null)
+        load()
+    }
+
+    fun showFilters() {
+        _uiState.value = _uiState.value.copy(isFilterSheetVisible = true)
+    }
+
+    fun hideFilters() {
+        _uiState.value = _uiState.value.copy(isFilterSheetVisible = false)
+    }
+
+    fun updateFilters(filters: MatchingFilters) {
+        _uiState.value = _uiState.value.copy(filters = filters, isFilterSheetVisible = false)
+        load()
+    }
+
+    fun clearFilters() {
+        _uiState.value = _uiState.value.copy(filters = MatchingFilters(), isFilterSheetVisible = false)
+        load()
+    }
+
+    fun updateActivePetLocation(latitude: Double, longitude: Double) {
+        val activePet = _uiState.value.activePet ?: return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isRefreshingLocation = true)
+            when (val result = safeApiCall { repository.updatePetLocation(activePet.id, latitude, longitude) }) {
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        isRefreshingLocation = false,
+                        activePet = result.data,
+                        locationMessage = "Геопозиция обновлена"
+                    )
+                    load()
+                }
+
+                is AppResult.Error -> {
+                    if (handleUnauthorized(result.error)) return@launch
+                    _uiState.value = _uiState.value.copy(
+                        isRefreshingLocation = false,
+                        locationMessage = "Не удалось обновить геопозицию"
                     )
                 }
             }
         }
+    }
+
+    fun markLocationDenied() {
+        _uiState.value = _uiState.value.copy(locationMessage = "Геопозиция выключена, расстояние может быть неточным")
+    }
+
+    fun openProfile(targetPetId: String, onOpen: (String) -> Unit) {
+        val sourcePetId = _uiState.value.activePet?.id
+        if (sourcePetId != null) {
+            viewModelScope.launch {
+                safeApiCall { repository.sendProfileOpen(sourcePetId, targetPetId) }
+            }
+        }
+        onOpen(targetPetId)
     }
 
     fun like(targetPetId: String) {
@@ -150,8 +230,9 @@ class MatchingViewModel @Inject constructor(
                         return@launch
                     }
 
-                    _uiState.value = MatchingUiState(
+                    _uiState.value = _uiState.value.copy(
                         isLoading = false,
+                        isActionLoading = false,
                         errorMessage = swipeResult.error.message
                     )
                 }
@@ -170,8 +251,9 @@ class MatchingViewModel @Inject constructor(
                                 return@launch
                             }
 
-                            _uiState.value = MatchingUiState(
+                            _uiState.value = _uiState.value.copy(
                                 isLoading = false,
+                                isActionLoading = false,
                                 errorMessage = matchesResult.error.message
                             )
                         }
@@ -182,7 +264,7 @@ class MatchingViewModel @Inject constructor(
                                 recommendations = updatedRecommendations,
                                 matches = matchesResult.data,
                                 successMessage = if (swipeResult.data.is_match) {
-                                    "У вас новый match!"
+                                    "У вас новый мэтч!"
                                 } else {
                                     when (action) {
                                         SwipeAction.Like -> "Лайк отправлен"
@@ -200,5 +282,13 @@ class MatchingViewModel @Inject constructor(
     private enum class SwipeAction {
         Like,
         Pass
+    }
+
+    private fun locationMessageFor(latitude: String?, longitude: String?): String {
+        return if (latitude.isNullOrBlank() || longitude.isNullOrBlank()) {
+            "Разрешите геопозицию, чтобы видеть расстояние"
+        } else {
+            "Расстояние считается от текущей геопозиции"
+        }
     }
 }

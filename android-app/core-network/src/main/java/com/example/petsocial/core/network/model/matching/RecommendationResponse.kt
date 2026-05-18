@@ -19,6 +19,9 @@ data class RecommendationResponse(
     val latitude: String?,
     val longitude: String?,
     val distance_meters: Int?,
+    val compatibility_score: Int = 0,
+    val score_reasons: List<String> = emptyList(),
+    val goal: String = "walk",
     val is_active: Boolean,
     val created_at: String,
     val updated_at: String

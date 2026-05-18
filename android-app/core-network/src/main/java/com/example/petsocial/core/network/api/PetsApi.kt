@@ -3,6 +3,7 @@ package com.example.petsocial.core.network.api
 import com.example.petsocial.core.network.model.pets.CreatePetRequest
 import com.example.petsocial.core.network.model.pets.PetResponse
 import com.example.petsocial.core.network.model.pets.PublicPetProfileResponse
+import com.example.petsocial.core.network.model.pets.UpdatePetLocationRequest
 import com.example.petsocial.core.network.model.pets.UpdatePetRequest
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -34,6 +35,12 @@ interface PetsApi {
     suspend fun updatePet(
         @Path("id") id: String,
         @Body request: UpdatePetRequest
+    ): PetResponse
+
+    @PATCH("v1/pets/{id}/location")
+    suspend fun updatePetLocation(
+        @Path("id") id: String,
+        @Body request: UpdatePetLocationRequest
     ): PetResponse
 
     @POST("v1/pets/{id}/set-active")
