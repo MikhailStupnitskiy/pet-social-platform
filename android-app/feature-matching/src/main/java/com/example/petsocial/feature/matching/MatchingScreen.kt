@@ -1,5 +1,6 @@
 package com.example.petsocial.feature.matching
 
+import android.annotation.SuppressLint
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -83,6 +84,7 @@ import com.example.petsocial.core.ui.FullScreenLoading
 import com.example.petsocial.core.ui.SuccessMessage
 import com.google.android.gms.location.LocationServices
 
+@SuppressLint("MissingPermission")
 @Composable
 fun MatchingRoute(
     onPetProfileClick: (String) -> Unit,

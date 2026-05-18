@@ -9,6 +9,7 @@ import com.example.petsocial.core.common.result.safeApiCall
 import com.example.petsocial.core.common.session.SessionEventBus
 import com.example.petsocial.core.datastore.auth.TokenStorage
 import com.example.petsocial.core.network.model.pets.PetResponse
+import com.example.petsocial.core.network.api.NotificationsApi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,6 +22,7 @@ import javax.inject.Inject
 class ProfileViewModel @Inject constructor(
     private val repository: ProfileRepository,
     private val tokenStorage: TokenStorage,
+    private val notificationsApi: NotificationsApi,
     private val sessionEventBus: SessionEventBus
 ) : ViewModel() {
 
@@ -67,6 +69,14 @@ class ProfileViewModel @Inject constructor(
                     if (handleUnauthorized(result.error)) return@launch
                     _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = result.error.message)
                     return@launch
+                }
+            }
+
+            val unreadCount = when (val result = safeApiCall { notificationsApi.getUnreadCount() }) {
+                is AppResult.Success -> result.data.count
+                is AppResult.Error -> {
+                    if (handleUnauthorized(result.error)) return@launch
+                    0
                 }
             }
 

@@ -31,6 +31,7 @@ import androidx.compose.material.icons.automirrored.rounded.ExitToApp
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Pets
+import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Button
@@ -93,6 +94,7 @@ fun ProfileRoute(
     onLogoutClick: () -> Unit,
     onUnauthorized: () -> Unit,
     onCreateHandlerProfileClick: () -> Unit,
+    onNotificationsClick: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -136,7 +138,8 @@ fun ProfileRoute(
         onTogglePersonalityTag = viewModel::togglePersonalityTag,
         onToggleInterest = viewModel::toggleInterest,
         onSavePet = viewModel::savePet,
-        onSetActivePet = viewModel::setActivePet
+        onSetActivePet = viewModel::setActivePet,
+        onNotificationsClick = onNotificationsClick
     )
 }
 
@@ -147,6 +150,7 @@ private fun ProfileScreen(
     onRetryClick: () -> Unit,
     onLogoutClick: () -> Unit,
     onCreateHandlerProfileClick: () -> Unit,
+    onNotificationsClick: () -> Unit,
     onProfileClick: () -> Unit,
     onDismissProfileEditor: () -> Unit,
     onProfileNameChanged: (String) -> Unit,
@@ -218,6 +222,11 @@ private fun ProfileScreen(
         item {
             ProductCard(modifier = Modifier.fillMaxWidth()) {
                 Text("Настройки", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                SettingsAction(
+                    icon = Icons.Rounded.Notifications,
+                    label = if (uiState.unreadNotificationsCount > 0) "Уведомления (${uiState.unreadNotificationsCount})" else "Уведомления",
+                    onClick = onNotificationsClick
+                )
                 SettingsAction(
                     icon = Icons.Rounded.Settings,
                     label = "Создать профиль хэндлера",

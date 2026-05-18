@@ -11,6 +11,7 @@ object AppRoutes {
     const val Care = "care"
     const val Feed = "feed"
     const val Handlers = "handlers"
+    const val Notifications = "notifications"
 
     const val PublicUserArg = "userId"
     const val PublicPetArg = "petId"

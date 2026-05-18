@@ -23,6 +23,7 @@ data class ProfileUiState(
     val petsCount: Int = 0,
     val matchesCount: Int = 0,
     val postsCount: Int = 0,
+    val unreadNotificationsCount: Int = 0,
     val pets: List<PetResponse> = emptyList(),
 
     val isProfileEditorVisible: Boolean = false,

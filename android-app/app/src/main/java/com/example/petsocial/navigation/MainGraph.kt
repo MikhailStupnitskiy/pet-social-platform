@@ -44,6 +44,8 @@ import com.example.petsocial.feature.profile.ProfileRoute
 import com.example.petsocial.feature.profile.PublicPetProfileRoute
 import com.example.petsocial.feature.profile.PublicUserProfileRoute
 import com.example.petsocial.feature.routine.RoutineRoute
+import com.example.petsocial.feature.notifications.NotificationsRoute
+import com.example.petsocial.feature.notifications.NotificationDestination
 
 fun NavGraphBuilder.mainGraph(
     navController: NavHostController,
@@ -57,7 +59,8 @@ fun NavGraphBuilder.mainGraph(
         AppRoutes.Matching,
         AppRoutes.Chats,
         AppRoutes.Care,
-        AppRoutes.Handlers
+        AppRoutes.Handlers,
+        AppRoutes.Notifications
     ).forEach { route ->
         composable(route) {
             MainScaffold(
@@ -109,7 +112,7 @@ private fun MainScaffold(
     Scaffold(
         containerColor = PetBackground,
         topBar = {
-            if (currentRoute != AppRoutes.Profile && currentRoute != AppRoutes.Feed && currentRoute != AppRoutes.Chats) {
+            if (currentRoute != AppRoutes.Profile && currentRoute != AppRoutes.Feed && currentRoute != AppRoutes.Chats && currentRoute != AppRoutes.Notifications) {
                 PetSocialTopBar(title = titleForRoute(currentRoute, isHandler))
             }
         },
@@ -129,7 +132,8 @@ private fun MainScaffold(
                     } else {
                         OwnerProfileRoute(
                             onLogoutClick = onLogoutClick,
-                            onCreateHandlerProfileClick = onCreateHandlerProfileClick
+                            onCreateHandlerProfileClick = onCreateHandlerProfileClick,
+                            onNotificationsClick = { navController.navigate(AppRoutes.Notifications) }
                         )
                     }
                 }
@@ -172,6 +176,16 @@ private fun MainScaffold(
                     onUserProfileClick = { userId -> navController.navigate(AppRoutes.publicUser(userId)) },
                     onPetProfileClick = { petId -> navController.navigate(AppRoutes.publicPet(petId)) }
                 )
+                AppRoutes.Notifications -> NotificationsRoute(
+                    onDestination = { destination ->
+                        when (destination) {
+                            NotificationDestination.Matching -> navController.navigate(AppRoutes.Matching) { launchSingleTop = true }
+                            NotificationDestination.Chats -> navController.navigate(AppRoutes.Chats) { launchSingleTop = true }
+                            NotificationDestination.Care -> navController.navigate(AppRoutes.Care) { launchSingleTop = true }
+                            NotificationDestination.None -> Unit
+                        }
+                    }
+                )
             }
         }
     }
@@ -180,12 +194,14 @@ private fun MainScaffold(
 @Composable
 private fun OwnerProfileRoute(
     onLogoutClick: () -> Unit,
-    onCreateHandlerProfileClick: () -> Unit
+    onCreateHandlerProfileClick: () -> Unit,
+    onNotificationsClick: () -> Unit
 ) {
     ProfileRoute(
         onLogoutClick = onLogoutClick,
         onUnauthorized = onLogoutClick,
-        onCreateHandlerProfileClick = onCreateHandlerProfileClick
+        onCreateHandlerProfileClick = onCreateHandlerProfileClick,
+        onNotificationsClick = onNotificationsClick
     )
 }
 

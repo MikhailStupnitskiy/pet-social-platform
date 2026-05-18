@@ -9,6 +9,7 @@ import com.example.petsocial.core.common.result.safeApiCall
 import com.example.petsocial.core.common.session.SessionEventBus
 import com.example.petsocial.core.network.api.HandlersApi
 import com.example.petsocial.core.network.api.PetsApi
+import com.example.petsocial.feature.routine.notifications.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.LocalDate
@@ -28,6 +29,7 @@ class RoutineViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val completionPrefs = appContext.getSharedPreferences(COMPLETION_PREFS_NAME, Context.MODE_PRIVATE)
+    private val reminderScheduler = ReminderScheduler(appContext)
 
     private val _uiState = MutableStateFlow(
         RoutineUiState(
@@ -100,11 +102,15 @@ class RoutineViewModel @Inject constructor(
                         return@launch
                     }
 
+                    val routineItems = (routineResult as AppResult.Success).data
+                    val serviceRequests = (requestsResult as? AppResult.Success)?.data.orEmpty()
+                    reminderScheduler.schedule(routineItems, serviceRequests)
+
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         activePet = activePet,
-                        items = (routineResult as AppResult.Success).data,
-                        serviceRequests = (requestsResult as? AppResult.Success)?.data.orEmpty()
+                        items = routineItems,
+                        serviceRequests = serviceRequests
                     )
                 }
             }

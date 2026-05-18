@@ -39,3 +39,5 @@ include(":feature-routine")
 include(":feature-matching")
 include(":feature-feed")
 include(":feature-handlers")
+
+include(":feature-notifications")
