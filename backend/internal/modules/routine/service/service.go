@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 
 	"pet-social-platform/backend/internal/modules/routine/domain"
 )
@@ -33,8 +34,14 @@ func (s *Service) CreateRoutineItem(
 	title string,
 	category string,
 	scheduleTime *string,
+	repeatRule string,
 	notes *string,
 ) (*domain.RoutineItem, error) {
+	repeatRule = normalizeRepeatRule(repeatRule)
+	if !isValidRepeatRule(repeatRule) {
+		return nil, domain.ErrInvalidRepeatRule
+	}
+
 	ok, err := s.repo.IsPetOwnedByUser(ctx, petID, ownerID)
 	if err != nil {
 		return nil, err
@@ -43,7 +50,7 @@ func (s *Service) CreateRoutineItem(
 		return nil, domain.ErrPetAccessDenied
 	}
 
-	return s.repo.Create(ctx, petID, title, category, scheduleTime, notes)
+	return s.repo.Create(ctx, petID, title, category, scheduleTime, repeatRule, notes)
 }
 
 func (s *Service) UpdateRoutineItem(
@@ -53,12 +60,43 @@ func (s *Service) UpdateRoutineItem(
 	title string,
 	category string,
 	scheduleTime *string,
+	repeatRule string,
 	notes *string,
 	isEnabled bool,
 ) (*domain.RoutineItem, error) {
-	return s.repo.Update(ctx, itemID, ownerID, title, category, scheduleTime, notes, isEnabled)
+	repeatRule = normalizeRepeatRule(repeatRule)
+	if !isValidRepeatRule(repeatRule) {
+		return nil, domain.ErrInvalidRepeatRule
+	}
+
+	return s.repo.Update(ctx, itemID, ownerID, title, category, scheduleTime, repeatRule, notes, isEnabled)
+}
+
+func (s *Service) DeleteRoutineItem(ctx context.Context, itemID string, ownerID string) error {
+	itemID = strings.TrimSpace(itemID)
+	if itemID == "" {
+		return domain.ErrRoutineItemNotFound
+	}
+	return s.repo.Delete(ctx, itemID, ownerID)
 }
 
 func (s *Service) CompleteRoutineItem(ctx context.Context, itemID string, ownerID string) (*domain.Completion, error) {
 	return s.repo.Complete(ctx, itemID, ownerID)
+}
+
+func normalizeRepeatRule(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "none"
+	}
+	return value
+}
+
+func isValidRepeatRule(value string) bool {
+	switch value {
+	case "none", "daily", "weekly", "monthly":
+		return true
+	default:
+		return false
+	}
 }

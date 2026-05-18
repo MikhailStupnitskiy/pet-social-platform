@@ -8,6 +8,7 @@ type RoutineItem struct {
 	Title        string
 	Category     string
 	ScheduleTime *string
+	RepeatRule   string
 	Notes        *string
 	IsEnabled    bool
 	CreatedAt    time.Time

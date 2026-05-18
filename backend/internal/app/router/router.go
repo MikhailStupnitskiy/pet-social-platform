@@ -182,6 +182,7 @@ func New(deps Dependencies) http.Handler {
 		r.Get("/", routineHandler.List)
 		r.Post("/", routineHandler.Create)
 		r.Patch("/{id}", routineHandler.Patch)
+		r.Delete("/{id}", routineHandler.Delete)
 		r.Post("/{id}/complete", routineHandler.Complete)
 	})
 

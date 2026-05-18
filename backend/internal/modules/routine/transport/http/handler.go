@@ -91,11 +91,16 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		req.Title,
 		req.Category,
 		trimPtr(req.ScheduleTime),
+		req.RepeatRule,
 		trimPtr(req.Notes),
 	)
 	if err != nil {
 		if errors.Is(err, domain.ErrPetAccessDenied) {
 			response.Forbidden(w, "pet access denied")
+			return
+		}
+		if errors.Is(err, domain.ErrInvalidRepeatRule) {
+			response.BadRequest(w, err.Error())
 			return
 		}
 		response.InternalServerError(w)
@@ -143,6 +148,7 @@ func (h *Handler) Patch(w http.ResponseWriter, r *http.Request) {
 		req.Title,
 		req.Category,
 		trimPtr(req.ScheduleTime),
+		req.RepeatRule,
 		trimPtr(req.Notes),
 		req.IsEnabled,
 	)
@@ -151,11 +157,40 @@ func (h *Handler) Patch(w http.ResponseWriter, r *http.Request) {
 			response.NotFound(w, "routine item not found")
 			return
 		}
+		if errors.Is(err, domain.ErrInvalidRepeatRule) {
+			response.BadRequest(w, err.Error())
+			return
+		}
 		response.InternalServerError(w)
 		return
 	}
 
 	response.JSON(w, http.StatusOK, toRoutineItemResponse(item))
+}
+
+func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
+	ownerID, ok := authhttp.UserIDFromContext(r.Context())
+	if !ok || ownerID == "" {
+		response.Unauthorized(w, "unauthorized")
+		return
+	}
+
+	itemID := strings.TrimSpace(chi.URLParam(r, "id"))
+	if itemID == "" {
+		response.BadRequest(w, "routine item id is required")
+		return
+	}
+
+	if err := h.service.DeleteRoutineItem(r.Context(), itemID, ownerID); err != nil {
+		if errors.Is(err, domain.ErrRoutineItemNotFound) {
+			response.NotFound(w, "routine item not found")
+			return
+		}
+		response.InternalServerError(w)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Handler) Complete(w http.ResponseWriter, r *http.Request) {
@@ -195,6 +230,7 @@ func toRoutineItemResponse(item *domain.RoutineItem) RoutineItemResponse {
 		Title:        item.Title,
 		Category:     item.Category,
 		ScheduleTime: item.ScheduleTime,
+		RepeatRule:   item.RepeatRule,
 		Notes:        item.Notes,
 		IsEnabled:    item.IsEnabled,
 		CreatedAt:    item.CreatedAt.Format(time.RFC3339),

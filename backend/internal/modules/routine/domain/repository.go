@@ -11,6 +11,7 @@ type Repository interface {
 		title string,
 		category string,
 		scheduleTime *string,
+		repeatRule string,
 		notes *string,
 	) (*RoutineItem, error)
 	Update(
@@ -20,8 +21,10 @@ type Repository interface {
 		title string,
 		category string,
 		scheduleTime *string,
+		repeatRule string,
 		notes *string,
 		isEnabled bool,
 	) (*RoutineItem, error)
+	Delete(ctx context.Context, itemID string, ownerID string) error
 	Complete(ctx context.Context, itemID string, ownerID string) (*Completion, error)
 }

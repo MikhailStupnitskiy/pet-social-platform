@@ -5,6 +5,7 @@ type CreateRoutineItemRequest struct {
 	Title        string  `json:"title"`
 	Category     string  `json:"category"`
 	ScheduleTime *string `json:"schedule_time"`
+	RepeatRule   string  `json:"repeat_rule"`
 	Notes        *string `json:"notes"`
 }
 
@@ -12,6 +13,7 @@ type UpdateRoutineItemRequest struct {
 	Title        string  `json:"title"`
 	Category     string  `json:"category"`
 	ScheduleTime *string `json:"schedule_time"`
+	RepeatRule   string  `json:"repeat_rule"`
 	Notes        *string `json:"notes"`
 	IsEnabled    bool    `json:"is_enabled"`
 }
@@ -22,6 +24,7 @@ type RoutineItemResponse struct {
 	Title        string  `json:"title"`
 	Category     string  `json:"category"`
 	ScheduleTime *string `json:"schedule_time,omitempty"`
+	RepeatRule   string  `json:"repeat_rule"`
 	Notes        *string `json:"notes,omitempty"`
 	IsEnabled    bool    `json:"is_enabled"`
 	CreatedAt    string  `json:"created_at"`
