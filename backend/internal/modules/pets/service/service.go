@@ -29,6 +29,10 @@ func (s *Service) GetMyPet(ctx context.Context, petID string, ownerID string) (*
 	return s.repo.GetByIDAndOwnerID(ctx, petID, ownerID)
 }
 
+func (s *Service) GetPublicPet(ctx context.Context, petID string) (*domain.PublicPetProfile, error) {
+	return s.repo.GetPublicByID(ctx, petID)
+}
+
 func (s *Service) UpdateMyPet(
 	ctx context.Context,
 	pet domain.Pet,

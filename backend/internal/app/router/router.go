@@ -146,6 +146,7 @@ func New(deps Dependencies) http.Handler {
 		r.Get("/me", usersHandler.GetMe)
 		r.Get("/me/stats", usersHandler.GetMyStats)
 		r.Patch("/me", usersHandler.PatchMe)
+		r.Get("/{id}", usersHandler.GetPublicProfile)
 	})
 
 	r.Route("/v1/pets", func(r chi.Router) {
@@ -153,6 +154,7 @@ func New(deps Dependencies) http.Handler {
 
 		r.Get("/", petsHandler.List)
 		r.Post("/", petsHandler.Create)
+		r.Get("/public/{id}", petsHandler.GetPublicByID)
 		r.Get("/{id}", petsHandler.GetByID)
 		r.Patch("/{id}", petsHandler.Patch)
 		r.Post("/{id}/set-active", petsHandler.SetActive)

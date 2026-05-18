@@ -31,15 +31,50 @@ func (r *Repository) ListByUserID(ctx context.Context, userID string) ([]domain.
 			c.client_user_id,
 			c.handler_user_id,
 			CASE
-				WHEN c.service_request_id IS NOT NULL AND c.client_user_id = $1 THEN COALESCE(hp.display_name, 'Специалист')
-				WHEN c.service_request_id IS NOT NULL THEN COALESCE(client_profile.name, 'Клиент')
-				WHEN p1.owner_id = $1 THEN COALESCE(p2.name, 'Питомец')
-				ELSE COALESCE(p1.name, 'Питомец')
+				WHEN c.service_request_id IS NOT NULL AND c.client_user_id = $1 THEN c.handler_user_id
+				WHEN c.service_request_id IS NOT NULL THEN c.client_user_id
+				WHEN p1.owner_id = $1 THEN p2.owner_id
+				ELSE p1.owner_id
+			END AS peer_user_id,
+			CASE
+				WHEN c.match_id IS NOT NULL AND p1.owner_id = $1 THEN c.pet2_id
+				WHEN c.match_id IS NOT NULL THEN c.pet1_id
+				ELSE NULL
+			END AS peer_pet_id,
+			CASE
+				WHEN c.service_request_id IS NOT NULL THEN 'service_request'
+				ELSE 'match'
+			END AS source,
+			CASE
+				WHEN c.service_request_id IS NOT NULL AND c.client_user_id = $1 THEN COALESCE(hp.display_name, U&'\0421\043F\0435\0446\0438\0430\043B\0438\0441\0442')
+				WHEN c.service_request_id IS NOT NULL THEN COALESCE(client_profile.name, U&'\041A\043B\0438\0435\043D\0442')
+				WHEN p1.owner_id = $1 THEN COALESCE(p2_owner_profile.name, U&'\0412\043B\0430\0434\0435\043B\0435\0446')
+				ELSE COALESCE(p1_owner_profile.name, U&'\0412\043B\0430\0434\0435\043B\0435\0446')
+			END AS peer_name,
+			CASE
+				WHEN c.service_request_id IS NOT NULL THEN COALESCE(client_profile.name, U&'\041A\043B\0438\0435\043D\0442')
+				WHEN p1.owner_id = $1 THEN COALESCE(p2_owner_profile.name, U&'\0412\043B\0430\0434\0435\043B\0435\0446')
+				ELSE COALESCE(p1_owner_profile.name, U&'\0412\043B\0430\0434\0435\043B\0435\0446')
+			END AS owner_name,
+			CASE
+				WHEN c.service_request_id IS NOT NULL THEN COALESCE(p1.name, U&'\041F\0438\0442\043E\043C\0435\0446')
+				WHEN p1.owner_id = $1 THEN COALESCE(p2.name, U&'\041F\0438\0442\043E\043C\0435\0446')
+				ELSE COALESCE(p1.name, U&'\041F\0438\0442\043E\043C\0435\0446')
+			END AS pet_name,
+			CASE
+				WHEN c.service_request_id IS NOT NULL THEN COALESCE(hs.title, U&'\0423\0441\043B\0443\0433\0430')
+				ELSE NULL
+			END AS service_title,
+			CASE
+				WHEN c.service_request_id IS NOT NULL AND c.client_user_id = $1 THEN COALESCE(hp.display_name, U&'\0421\043F\0435\0446\0438\0430\043B\0438\0441\0442')
+				WHEN c.service_request_id IS NOT NULL THEN COALESCE(client_profile.name, U&'\041A\043B\0438\0435\043D\0442')
+				WHEN p1.owner_id = $1 THEN COALESCE(p2.name, U&'\041F\0438\0442\043E\043C\0435\0446')
+				ELSE COALESCE(p1.name, U&'\041F\0438\0442\043E\043C\0435\0446')
 			END AS title,
 			CASE
-				WHEN c.service_request_id IS NOT NULL THEN COALESCE(hs.title, 'Услуга')
-				WHEN p1.owner_id = $1 THEN COALESCE(p2.breed, p2.species, 'Мэтч')
-				ELSE COALESCE(p1.breed, p1.species, 'Мэтч')
+				WHEN c.service_request_id IS NOT NULL THEN COALESCE(hs.title, U&'\0423\0441\043B\0443\0433\0430')
+				WHEN p1.owner_id = $1 THEN COALESCE(p2.breed, p2.species, U&'\041C\044D\0442\0447')
+				ELSE COALESCE(p1.breed, p1.species, U&'\041C\044D\0442\0447')
 			END AS subtitle,
 			CASE
 				WHEN c.service_request_id IS NOT NULL AND c.client_user_id = $1 THEN hp.avatar_url
@@ -55,6 +90,8 @@ func (r *Repository) ListByUserID(ctx context.Context, userID string) ([]domain.
 		FROM chats c
 		LEFT JOIN pets p1 ON p1.id = c.pet1_id
 		LEFT JOIN pets p2 ON p2.id = c.pet2_id
+		LEFT JOIN user_profiles p1_owner_profile ON p1_owner_profile.user_id = p1.owner_id
+		LEFT JOIN user_profiles p2_owner_profile ON p2_owner_profile.user_id = p2.owner_id
 		LEFT JOIN service_requests sr ON sr.id = c.service_request_id
 		LEFT JOIN handler_services hs ON hs.id = sr.service_id
 		LEFT JOIN handler_profiles hp ON hp.user_id = c.handler_user_id
@@ -75,10 +112,12 @@ func (r *Repository) ListByUserID(ctx context.Context, userID string) ([]domain.
 			  AND m.sender_user_id <> $1
 			  AND m.created_at > COALESCE(read_state.last_read_at, 'epoch'::timestamptz)
 		) unread ON TRUE
-		WHERE p1.owner_id = $1
-		   OR p2.owner_id = $1
-		   OR c.client_user_id = $1
-		   OR c.handler_user_id = $1
+		WHERE (
+				(p1.owner_id = $1 AND p1.is_active)
+				OR (p2.owner_id = $1 AND p2.is_active)
+				OR (c.client_user_id = $1 AND p1.is_active)
+				OR (c.handler_user_id = $1 AND p1.is_active)
+			)
 		ORDER BY COALESCE(last_message.created_at, c.created_at) DESC
 	`
 
@@ -255,6 +294,12 @@ func scanChat(scanner chatScanner) (domain.Chat, error) {
 	var pet2ID sql.NullString
 	var clientUserID sql.NullString
 	var handlerUserID sql.NullString
+	var peerUserID sql.NullString
+	var peerPetID sql.NullString
+	var peerName sql.NullString
+	var ownerName sql.NullString
+	var petName sql.NullString
+	var serviceTitle sql.NullString
 	var avatarURL sql.NullString
 	var lastMessage sql.NullString
 	var lastMessageAt sql.NullTime
@@ -267,6 +312,13 @@ func scanChat(scanner chatScanner) (domain.Chat, error) {
 		&pet2ID,
 		&clientUserID,
 		&handlerUserID,
+		&peerUserID,
+		&peerPetID,
+		&chat.Source,
+		&peerName,
+		&ownerName,
+		&petName,
+		&serviceTitle,
 		&chat.Title,
 		&chat.Subtitle,
 		&avatarURL,
@@ -285,6 +337,12 @@ func scanChat(scanner chatScanner) (domain.Chat, error) {
 	chat.Pet2ID = nullableString(pet2ID)
 	chat.ClientUserID = nullableString(clientUserID)
 	chat.HandlerUserID = nullableString(handlerUserID)
+	chat.PeerUserID = nullableString(peerUserID)
+	chat.PeerPetID = nullableString(peerPetID)
+	chat.PeerName = nullableString(peerName)
+	chat.OwnerName = nullableString(ownerName)
+	chat.PetName = nullableString(petName)
+	chat.ServiceTitle = nullableString(serviceTitle)
 	chat.AvatarURL = nullableString(avatarURL)
 	chat.LastMessage = nullableString(lastMessage)
 	if lastMessageAt.Valid {

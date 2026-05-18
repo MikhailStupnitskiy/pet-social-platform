@@ -51,6 +51,13 @@ func (h *Handler) ListChats(w http.ResponseWriter, r *http.Request) {
 			Pet2ID:           chat.Pet2ID,
 			ClientUserID:     chat.ClientUserID,
 			HandlerUserID:    chat.HandlerUserID,
+			PeerUserID:       chat.PeerUserID,
+			PeerPetID:        chat.PeerPetID,
+			Source:           chat.Source,
+			PeerName:         chat.PeerName,
+			OwnerName:        chat.OwnerName,
+			PetName:          chat.PetName,
+			ServiceTitle:     chat.ServiceTitle,
 			Title:            chat.Title,
 			Subtitle:         chat.Subtitle,
 			AvatarURL:        chat.AvatarURL,
@@ -95,6 +102,7 @@ func (h *Handler) ListMessages(w http.ResponseWriter, r *http.Request) {
 			ChatID:       message.ChatID,
 			SenderUserID: message.SenderUserID,
 			Body:         message.Body,
+			IsMine:       message.SenderUserID == userID,
 			CreatedAt:    message.CreatedAt.Format(time.RFC3339),
 		})
 	}
@@ -139,6 +147,7 @@ func (h *Handler) SendMessage(w http.ResponseWriter, r *http.Request) {
 		ChatID:       message.ChatID,
 		SenderUserID: message.SenderUserID,
 		Body:         message.Body,
+		IsMine:       message.SenderUserID == userID,
 		CreatedAt:    message.CreatedAt.Format(time.RFC3339),
 	})
 }

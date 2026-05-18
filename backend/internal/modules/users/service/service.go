@@ -22,6 +22,10 @@ func (s *Service) GetMyProfileStats(ctx context.Context, userID string) (*domain
 	return s.repo.GetProfileStats(ctx, userID)
 }
 
+func (s *Service) GetPublicProfile(ctx context.Context, userID string) (*domain.PublicProfile, error) {
+	return s.repo.GetPublicProfile(ctx, userID)
+}
+
 func (s *Service) UpdateMyProfile(
 	ctx context.Context,
 	userID string,

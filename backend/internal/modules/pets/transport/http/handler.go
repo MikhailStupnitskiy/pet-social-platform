@@ -107,6 +107,26 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, toPetResponse(pet))
 }
 
+func (h *Handler) GetPublicByID(w http.ResponseWriter, r *http.Request) {
+	petID := strings.TrimSpace(chi.URLParam(r, "id"))
+	if petID == "" {
+		response.BadRequest(w, "pet id is required")
+		return
+	}
+
+	pet, err := h.service.GetPublicPet(r.Context(), petID)
+	if err != nil {
+		if errors.Is(err, domain.ErrPetNotFound) {
+			response.NotFound(w, "pet not found")
+			return
+		}
+		response.InternalServerError(w)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, toPublicPetProfileResponse(pet))
+}
+
 func (h *Handler) Patch(w http.ResponseWriter, r *http.Request) {
 	ownerID, ok := authhttp.UserIDFromContext(r.Context())
 	if !ok || ownerID == "" {
@@ -209,6 +229,39 @@ func toPetResponse(pet *domain.Pet) PetResponse {
 		IsActive:           pet.IsActive,
 		CreatedAt:          pet.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:          pet.UpdatedAt.Format(time.RFC3339),
+	}
+}
+
+func toPublicPetProfileResponse(pet *domain.PublicPetProfile) PublicPetProfileResponse {
+	var birthDate *string
+	if pet.BirthDate != nil {
+		formatted := pet.BirthDate.Format("2006-01-02")
+		birthDate = &formatted
+	}
+
+	return PublicPetProfileResponse{
+		ID: pet.ID,
+		Owner: PublicOwnerSummaryResponse{
+			UserID:    pet.Owner.UserID,
+			Name:      pet.Owner.Name,
+			City:      pet.Owner.City,
+			Bio:       pet.Owner.Bio,
+			AvatarURL: pet.Owner.AvatarURL,
+		},
+		Name:            pet.Name,
+		Species:         pet.Species,
+		Breed:           pet.Breed,
+		Sex:             pet.Sex,
+		BirthDate:       birthDate,
+		WeightKg:        pet.WeightKg,
+		Bio:             pet.Bio,
+		PhotoURL:        pet.PhotoURL,
+		PersonalityTags: pet.PersonalityTags,
+		Interests:       pet.Interests,
+		MatchingGoal:    pet.MatchingGoal,
+		IsActive:        pet.IsActive,
+		CreatedAt:       pet.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:       pet.UpdatedAt.Format(time.RFC3339),
 	}
 }
 

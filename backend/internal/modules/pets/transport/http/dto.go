@@ -58,3 +58,30 @@ type PetResponse struct {
 	CreatedAt          string   `json:"created_at"`
 	UpdatedAt          string   `json:"updated_at"`
 }
+
+type PublicOwnerSummaryResponse struct {
+	UserID    string  `json:"user_id"`
+	Name      string  `json:"name"`
+	City      *string `json:"city,omitempty"`
+	Bio       *string `json:"bio,omitempty"`
+	AvatarURL *string `json:"avatar_url,omitempty"`
+}
+
+type PublicPetProfileResponse struct {
+	ID              string                     `json:"id"`
+	Owner           PublicOwnerSummaryResponse `json:"owner"`
+	Name            string                     `json:"name"`
+	Species         string                     `json:"species"`
+	Breed           *string                    `json:"breed,omitempty"`
+	Sex             *string                    `json:"sex,omitempty"`
+	BirthDate       *string                    `json:"birth_date,omitempty"`
+	WeightKg        *string                    `json:"weight_kg,omitempty"`
+	Bio             *string                    `json:"bio,omitempty"`
+	PhotoURL        *string                    `json:"photo_url,omitempty"`
+	PersonalityTags []string                   `json:"personality_tags"`
+	Interests       []string                   `json:"interests"`
+	MatchingGoal    *string                    `json:"matching_goal,omitempty"`
+	IsActive        bool                       `json:"is_active"`
+	CreatedAt       string                     `json:"created_at"`
+	UpdatedAt       string                     `json:"updated_at"`
+}

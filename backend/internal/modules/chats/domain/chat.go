@@ -10,6 +10,13 @@ type Chat struct {
 	Pet2ID           *string
 	ClientUserID     *string
 	HandlerUserID    *string
+	PeerUserID       *string
+	PeerPetID        *string
+	Source           string
+	PeerName         *string
+	OwnerName        *string
+	PetName          *string
+	ServiceTitle     *string
 	Title            string
 	Subtitle         string
 	AvatarURL        *string

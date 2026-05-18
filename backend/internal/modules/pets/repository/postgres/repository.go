@@ -139,6 +139,70 @@ func (r *Repository) GetByIDAndOwnerID(ctx context.Context, petID string, ownerI
 	return &pet, nil
 }
 
+func (r *Repository) GetPublicByID(ctx context.Context, petID string) (*domain.PublicPetProfile, error) {
+	const query = `
+		SELECT
+			p.id,
+			p.owner_id,
+			COALESCE(up.name, ''),
+			up.city,
+			up.bio,
+			up.avatar_url,
+			p.name,
+			p.species,
+			p.breed,
+			p.sex,
+			p.birth_date,
+			p.weight_kg::text,
+			p.bio,
+			p.photo_url,
+			COALESCE(p.personality_tags, '{}'),
+			COALESCE(p.interests, '{}'),
+			p.matching_goal,
+			p.is_active,
+			p.created_at,
+			p.updated_at
+		FROM pets p
+		JOIN users u ON u.id = p.owner_id
+		LEFT JOIN user_profiles up ON up.user_id = p.owner_id
+		WHERE p.id = $1
+	`
+
+	var pet domain.PublicPetProfile
+	err := r.db.QueryRow(ctx, query, petID).Scan(
+		&pet.ID,
+		&pet.Owner.UserID,
+		&pet.Owner.Name,
+		&pet.Owner.City,
+		&pet.Owner.Bio,
+		&pet.Owner.AvatarURL,
+		&pet.Name,
+		&pet.Species,
+		&pet.Breed,
+		&pet.Sex,
+		&pet.BirthDate,
+		&pet.WeightKg,
+		&pet.Bio,
+		&pet.PhotoURL,
+		&pet.PersonalityTags,
+		&pet.Interests,
+		&pet.MatchingGoal,
+		&pet.IsActive,
+		&pet.CreatedAt,
+		&pet.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.ErrPetNotFound
+		}
+		return nil, err
+	}
+
+	pet.PersonalityTags = normalizeList(pet.PersonalityTags)
+	pet.Interests = normalizeList(pet.Interests)
+	return &pet, nil
+}
+
 func (r *Repository) Update(ctx context.Context, pet domain.Pet) (*domain.Pet, error) {
 	const query = `
 		UPDATE pets

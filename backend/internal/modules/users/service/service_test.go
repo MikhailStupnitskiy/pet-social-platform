@@ -28,9 +28,28 @@ func TestGetMyProfileStatsReturnsRepositoryStats(t *testing.T) {
 	}
 }
 
+func TestGetPublicProfileReturnsRepositoryProfile(t *testing.T) {
+	expected := &domain.PublicProfile{UserID: "user-2"}
+	repo := &fakeRepository{publicProfile: expected}
+	svc := New(repo)
+
+	profile, err := svc.GetPublicProfile(context.Background(), "user-2")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if profile != expected {
+		t.Fatalf("expected public profile pointer from repository")
+	}
+	if repo.publicProfileUserID != "user-2" {
+		t.Fatalf("expected user-2, got %q", repo.publicProfileUserID)
+	}
+}
+
 type fakeRepository struct {
-	stats       *domain.ProfileStats
-	statsUserID string
+	stats               *domain.ProfileStats
+	statsUserID         string
+	publicProfile       *domain.PublicProfile
+	publicProfileUserID string
 }
 
 func (f *fakeRepository) GetProfileByUserID(context.Context, string) (*domain.Profile, error) {
@@ -40,6 +59,11 @@ func (f *fakeRepository) GetProfileByUserID(context.Context, string) (*domain.Pr
 func (f *fakeRepository) GetProfileStats(_ context.Context, userID string) (*domain.ProfileStats, error) {
 	f.statsUserID = userID
 	return f.stats, nil
+}
+
+func (f *fakeRepository) GetPublicProfile(_ context.Context, userID string) (*domain.PublicProfile, error) {
+	f.publicProfileUserID = userID
+	return f.publicProfile, nil
 }
 
 func (f *fakeRepository) UpsertProfile(

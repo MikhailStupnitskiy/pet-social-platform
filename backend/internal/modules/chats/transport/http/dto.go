@@ -8,6 +8,13 @@ type ChatResponse struct {
 	Pet2ID           *string `json:"pet2_id,omitempty"`
 	ClientUserID     *string `json:"client_user_id,omitempty"`
 	HandlerUserID    *string `json:"handler_user_id,omitempty"`
+	PeerUserID       *string `json:"peer_user_id,omitempty"`
+	PeerPetID        *string `json:"peer_pet_id,omitempty"`
+	Source           string  `json:"source"`
+	PeerName         *string `json:"peer_name,omitempty"`
+	OwnerName        *string `json:"owner_name,omitempty"`
+	PetName          *string `json:"pet_name,omitempty"`
+	ServiceTitle     *string `json:"service_title,omitempty"`
 	Title            string  `json:"title"`
 	Subtitle         string  `json:"subtitle"`
 	AvatarURL        *string `json:"avatar_url,omitempty"`
@@ -23,6 +30,7 @@ type MessageResponse struct {
 	ChatID       string `json:"chat_id"`
 	SenderUserID string `json:"sender_user_id"`
 	Body         string `json:"body"`
+	IsMine       bool   `json:"is_mine"`
 	CreatedAt    string `json:"created_at"`
 }
 
