@@ -43,6 +43,10 @@ import (
 	routineservice "pet-social-platform/backend/internal/modules/routine/service"
 	routinehttp "pet-social-platform/backend/internal/modules/routine/transport/http"
 
+	notificationspostgres "pet-social-platform/backend/internal/modules/notifications/repository/postgres"
+	notificationsservice "pet-social-platform/backend/internal/modules/notifications/service"
+	notificationshttp "pet-social-platform/backend/internal/modules/notifications/transport/http"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -84,14 +88,19 @@ func New(deps Dependencies) http.Handler {
 	petsSvc := petsservice.New(petsRepo)
 	petsHandler := petshttp.NewHandler(petsSvc)
 
+	// notifications init
+	notificationsRepo := notificationspostgres.New(deps.DB)
+	notificationsSvc := notificationsservice.New(notificationsRepo)
+	notificationsHandler := notificationshttp.NewHandler(notificationsSvc)
+
 	// chats init
 	chatsRepo := chatspostgres.New(deps.DB)
-	chatsSvc := chatsservice.New(chatsRepo)
+	chatsSvc := chatsservice.New(chatsRepo, notificationsSvc)
 	chatsHandler := chatshttp.NewHandler(chatsSvc)
 
 	// matching init
 	matchingRepo := matchingpostgres.New(deps.DB)
-	matchingSvc := matchingservice.New(matchingRepo, chatsSvc)
+	matchingSvc := matchingservice.New(matchingRepo, chatsSvc, notificationsSvc)
 	matchingHandler := matchinghttp.NewHandler(matchingSvc)
 
 	// routine init
@@ -107,7 +116,7 @@ func New(deps Dependencies) http.Handler {
 
 	// handlers init
 	handlersRepo := handlerspostgres.New(deps.DB)
-	handlersSvc := handlersservice.New(handlersRepo)
+	handlersSvc := handlersservice.New(handlersRepo, notificationsSvc)
 	handlersHandler := handlershttp.NewHandler(handlersSvc)
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -176,6 +185,15 @@ func New(deps Dependencies) http.Handler {
 		r.Get("/", chatsHandler.ListChats)
 		r.Get("/{id}/messages", chatsHandler.ListMessages)
 		r.Post("/{id}/messages", chatsHandler.SendMessage)
+	})
+
+	r.Route("/v1/notifications", func(r chi.Router) {
+		r.Use(authhttp.AuthMiddleware(authSvc))
+
+		r.Get("/", notificationsHandler.List)
+		r.Get("/unread-count", notificationsHandler.UnreadCount)
+		r.Patch("/{id}/read", notificationsHandler.MarkRead)
+		r.Post("/read-all", notificationsHandler.MarkAllRead)
 	})
 
 	r.Route("/v1/routine", func(r chi.Router) {

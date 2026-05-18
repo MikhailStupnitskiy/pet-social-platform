@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log"
 	"math"
 	"strings"
 	"time"
@@ -13,15 +14,25 @@ type ChatEnsurer interface {
 	EnsureChatForMatch(ctx context.Context, pet1ID string, pet2ID string) error
 }
 
+type MatchNotifier interface {
+	NotifyMatchCreated(ctx context.Context, userID string, matchID string, petID string, peerPetName string) error
+}
+
 type Service struct {
 	repo        domain.Repository
 	chatEnsurer ChatEnsurer
+	notifier    MatchNotifier
 }
 
-func New(repo domain.Repository, chatEnsurer ChatEnsurer) *Service {
+func New(repo domain.Repository, chatEnsurer ChatEnsurer, notifier ...MatchNotifier) *Service {
+	var matchNotifier MatchNotifier
+	if len(notifier) > 0 {
+		matchNotifier = notifier[0]
+	}
 	return &Service{
 		repo:        repo,
 		chatEnsurer: chatEnsurer,
+		notifier:    matchNotifier,
 	}
 }
 
@@ -91,13 +102,29 @@ func (s *Service) Swipe(ctx context.Context, sourcePetID string, targetPetID str
 	}
 
 	if reciprocal {
-		if err := s.repo.CreateMatchIfNotExists(ctx, sourcePetID, targetPetID); err != nil {
+		match, err := s.repo.CreateMatchIfNotExists(ctx, sourcePetID, targetPetID)
+		if err != nil {
 			return false, err
 		}
 
 		if s.chatEnsurer != nil {
 			if err := s.chatEnsurer.EnsureChatForMatch(ctx, sourcePetID, targetPetID); err != nil {
 				return false, err
+			}
+		}
+
+		if s.notifier != nil && match != nil {
+			source, sourceErr := s.repo.GetPetSnapshot(ctx, sourcePetID)
+			target, targetErr := s.repo.GetPetSnapshot(ctx, targetPetID)
+			if sourceErr == nil && targetErr == nil {
+				if err := s.notifier.NotifyMatchCreated(ctx, source.OwnerID, match.ID, source.ID, target.Name); err != nil {
+					log.Printf("notify match created for source owner: %v", err)
+				}
+				if err := s.notifier.NotifyMatchCreated(ctx, target.OwnerID, match.ID, target.ID, source.Name); err != nil {
+					log.Printf("notify match created for target owner: %v", err)
+				}
+			} else {
+				log.Printf("load pets for match notification: source=%v target=%v", sourceErr, targetErr)
 			}
 		}
 

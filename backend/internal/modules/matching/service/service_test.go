@@ -107,8 +107,8 @@ func (f *fakeMatchingRepository) HasReciprocalLike(context.Context, string, stri
 	return false, nil
 }
 
-func (f *fakeMatchingRepository) CreateMatchIfNotExists(context.Context, string, string) error {
-	return nil
+func (f *fakeMatchingRepository) CreateMatchIfNotExists(context.Context, string, string) (*domain.Match, error) {
+	return &domain.Match{ID: "match-1", Pet1ID: "pet-1", Pet2ID: "pet-2"}, nil
 }
 
 func (f *fakeMatchingRepository) ListMatchesByPetID(context.Context, string, string) ([]domain.Match, error) {

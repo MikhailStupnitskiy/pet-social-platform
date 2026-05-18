@@ -270,18 +270,28 @@ func (r *Repository) HasReciprocalLike(ctx context.Context, sourcePetID string, 
 	return exists, err
 }
 
-func (r *Repository) CreateMatchIfNotExists(ctx context.Context, pet1ID string, pet2ID string) error {
+func (r *Repository) CreateMatchIfNotExists(ctx context.Context, pet1ID string, pet2ID string) (*domain.Match, error) {
 	ordered := []string{pet1ID, pet2ID}
 	sort.Strings(ordered)
 
 	const query = `
 		INSERT INTO matches (pet1_id, pet2_id)
 		VALUES ($1, $2)
-		ON CONFLICT (pet1_id, pet2_id) DO NOTHING
+		ON CONFLICT (pet1_id, pet2_id) DO UPDATE SET pet1_id = EXCLUDED.pet1_id
+		RETURNING id, pet1_id, pet2_id, created_at
 	`
 
-	_, err := r.db.Exec(ctx, query, ordered[0], ordered[1])
-	return err
+	var match domain.Match
+	err := r.db.QueryRow(ctx, query, ordered[0], ordered[1]).Scan(
+		&match.ID,
+		&match.Pet1ID,
+		&match.Pet2ID,
+		&match.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &match, nil
 }
 
 func (r *Repository) ListMatchesByPetID(ctx context.Context, petID string, ownerID string) ([]domain.Match, error) {

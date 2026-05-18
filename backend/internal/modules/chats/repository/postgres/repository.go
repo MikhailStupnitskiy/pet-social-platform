@@ -225,6 +225,46 @@ func (r *Repository) CreateMessage(ctx context.Context, chatID string, senderUse
 	return &message, nil
 }
 
+func (r *Repository) ListParticipantUserIDs(ctx context.Context, chatID string) ([]string, error) {
+	const query = `
+		SELECT DISTINCT user_id
+		FROM (
+			SELECT p1.owner_id AS user_id
+			FROM chats c
+			JOIN pets p1 ON p1.id = c.pet1_id
+			WHERE c.id = $1
+			UNION ALL
+			SELECT p2.owner_id AS user_id
+			FROM chats c
+			JOIN pets p2 ON p2.id = c.pet2_id
+			WHERE c.id = $1 AND c.pet2_id IS NOT NULL
+			UNION ALL
+			SELECT client_user_id AS user_id
+			FROM chats
+			WHERE id = $1 AND client_user_id IS NOT NULL
+			UNION ALL
+			SELECT handler_user_id AS user_id
+			FROM chats
+			WHERE id = $1 AND handler_user_id IS NOT NULL
+		) participants
+	`
+
+	rows, err := r.db.Query(ctx, query, chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	ids := make([]string, 0)
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
 func (r *Repository) CreateChatIfNotExists(ctx context.Context, matchID string, pet1ID string, pet2ID string) error {
 	ordered := []string{pet1ID, pet2ID}
 	sort.Strings(ordered)

@@ -9,6 +9,6 @@ type Repository interface {
 	SaveSwipe(ctx context.Context, sourcePetID string, targetPetID string, action string) error
 	SaveEvent(ctx context.Context, event MatchingEvent) error
 	HasReciprocalLike(ctx context.Context, sourcePetID string, targetPetID string) (bool, error)
-	CreateMatchIfNotExists(ctx context.Context, pet1ID string, pet2ID string) error
+	CreateMatchIfNotExists(ctx context.Context, pet1ID string, pet2ID string) (*Match, error)
 	ListMatchesByPetID(ctx context.Context, petID string, ownerID string) ([]Match, error)
 }

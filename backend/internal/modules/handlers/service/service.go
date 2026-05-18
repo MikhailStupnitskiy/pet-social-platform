@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log"
 	"strings"
 	"time"
 
@@ -18,12 +19,22 @@ const (
 	MaxReviewBodyLength  = 1000
 )
 
-type Service struct {
-	repo domain.Repository
+type RequestNotifier interface {
+	NotifyServiceRequestCreated(ctx context.Context, handlerUserID string, requestID string, serviceTitle string, clientName string) error
+	NotifyServiceRequestStatusChanged(ctx context.Context, clientUserID string, requestID string, status string, serviceTitle string) error
 }
 
-func New(repository domain.Repository) *Service {
-	return &Service{repo: repository}
+type Service struct {
+	repo     domain.Repository
+	notifier RequestNotifier
+}
+
+func New(repository domain.Repository, notifier ...RequestNotifier) *Service {
+	var requestNotifier RequestNotifier
+	if len(notifier) > 0 {
+		requestNotifier = notifier[0]
+	}
+	return &Service{repo: repository, notifier: requestNotifier}
 }
 
 func (s *Service) ListProfiles(ctx context.Context, filter domain.ProfileFilter) ([]domain.HandlerProfile, error) {
@@ -203,7 +214,7 @@ func (s *Service) CreateRequest(
 		return nil, domain.ErrInactiveService
 	}
 
-	return s.repo.CreateRequest(ctx, domain.ServiceRequest{
+	created, err := s.repo.CreateRequest(ctx, domain.ServiceRequest{
 		ServiceID:     serviceID,
 		ClientUserID:  clientUserID,
 		HandlerUserID: selectedService.HandlerUserID,
@@ -213,6 +224,15 @@ func (s *Service) CreateRequest(
 		Comment:       comment,
 		Status:        domain.RequestStatusPending,
 	})
+	if err != nil {
+		return nil, err
+	}
+	if s.notifier != nil {
+		if err := s.notifier.NotifyServiceRequestCreated(ctx, created.HandlerUserID, created.ID, created.ServiceTitle, created.ClientName); err != nil {
+			log.Printf("notify service request created: %v", err)
+		}
+	}
+	return created, nil
 }
 
 func (s *Service) ListRequests(ctx context.Context, userID string, role string, status *string) ([]domain.ServiceRequest, error) {
@@ -276,6 +296,11 @@ func (s *Service) UpdateRequestStatus(ctx context.Context, userID string, reques
 	if nextStatus == domain.RequestStatusAccepted {
 		if err := s.repo.CreateServiceRequestChatIfNotExists(ctx, requestID); err != nil {
 			return nil, err
+		}
+	}
+	if s.notifier != nil {
+		if err := s.notifier.NotifyServiceRequestStatusChanged(ctx, updated.ClientUserID, updated.ID, updated.Status, updated.ServiceTitle); err != nil {
+			log.Printf("notify service request status changed: %v", err)
 		}
 	}
 	return updated, nil

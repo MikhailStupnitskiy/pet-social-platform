@@ -8,6 +8,7 @@ type Repository interface {
 	ListMessages(ctx context.Context, chatID string) ([]Message, error)
 	MarkChatRead(ctx context.Context, chatID string, userID string) error
 	CreateMessage(ctx context.Context, chatID string, senderUserID string, body string) (*Message, error)
+	ListParticipantUserIDs(ctx context.Context, chatID string) ([]string, error)
 
 	CreateChatIfNotExists(ctx context.Context, matchID string, pet1ID string, pet2ID string) error
 	GetMatchIDByPets(ctx context.Context, pet1ID string, pet2ID string) (string, error)
