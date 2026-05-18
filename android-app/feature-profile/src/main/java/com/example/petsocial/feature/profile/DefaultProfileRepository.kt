@@ -8,9 +8,11 @@ import com.example.petsocial.core.network.api.PetsApi
 import com.example.petsocial.core.network.api.ProfileApi
 import com.example.petsocial.core.network.model.pets.CreatePetRequest
 import com.example.petsocial.core.network.model.pets.PetResponse
+import com.example.petsocial.core.network.model.pets.PublicPetProfileResponse
 import com.example.petsocial.core.network.model.pets.UpdatePetRequest
 import com.example.petsocial.core.network.model.profile.ProfileResponse
 import com.example.petsocial.core.network.model.profile.ProfileStatsResponse
+import com.example.petsocial.core.network.model.profile.PublicUserProfileResponse
 import com.example.petsocial.core.network.model.profile.UpdateProfileRequest
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException
@@ -36,6 +38,14 @@ class DefaultProfileRepository @Inject constructor(
 
     override suspend fun getPets(): List<PetResponse> {
         return petsApi.getPets()
+    }
+
+    override suspend fun getPublicProfile(userId: String): PublicUserProfileResponse {
+        return profileApi.getPublicProfile(userId)
+    }
+
+    override suspend fun getPublicPet(petId: String): PublicPetProfileResponse {
+        return petsApi.getPublicPetById(petId)
     }
 
     override suspend fun updateMe(

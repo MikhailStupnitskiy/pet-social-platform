@@ -3,19 +3,21 @@ package com.example.petsocial.feature.chat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petsocial.core.common.result.AppError
+import com.example.petsocial.core.common.result.AppResult
+import com.example.petsocial.core.common.result.safeApiCall
+import com.example.petsocial.core.common.session.SessionEventBus
+import com.example.petsocial.core.datastore.auth.TokenStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import com.example.petsocial.core.common.result.AppResult
-import com.example.petsocial.core.common.result.safeApiCall
-import com.example.petsocial.core.common.session.SessionEventBus
 
 @HiltViewModel
 class MessagesViewModel @Inject constructor(
     private val repository: ChatRepository,
+    private val tokenStorage: TokenStorage,
     private val sessionEventBus: SessionEventBus
 ) : ViewModel() {
 
@@ -23,6 +25,14 @@ class MessagesViewModel @Inject constructor(
     val uiState: StateFlow<MessagesUiState> = _uiState.asStateFlow()
 
     private var currentChatId: String? = null
+
+    init {
+        viewModelScope.launch {
+            tokenStorage.token.collect { token ->
+                _uiState.value = _uiState.value.copy(authToken = token)
+            }
+        }
+    }
 
     private fun handleUnauthorized(error: AppError): Boolean {
         if (error is AppError.Unauthorized) {
@@ -55,7 +65,7 @@ class MessagesViewModel @Inject constructor(
                         return@launch
                     }
 
-                    _uiState.value = MessagesUiState(
+                    _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         errorMessage = result.error.message
                     )
@@ -77,14 +87,14 @@ class MessagesViewModel @Inject constructor(
 
         if (chatId.isNullOrBlank()) {
             _uiState.value = _uiState.value.copy(
-                errorMessage = "Чат не выбран"
+                errorMessage = "\u0427\u0430\u0442 \u043d\u0435 \u0432\u044b\u0431\u0440\u0430\u043d"
             )
             return
         }
 
         if (text.isBlank()) {
             _uiState.value = _uiState.value.copy(
-                errorMessage = "Введите сообщение"
+                errorMessage = "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435"
             )
             return
         }

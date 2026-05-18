@@ -11,4 +11,13 @@ object AppRoutes {
     const val Care = "care"
     const val Feed = "feed"
     const val Handlers = "handlers"
+
+    const val PublicUserArg = "userId"
+    const val PublicPetArg = "petId"
+    const val PublicUser = "public_user/{$PublicUserArg}"
+    const val PublicPet = "public_pet/{$PublicPetArg}"
+
+    fun publicUser(userId: String): String = "public_user/$userId"
+
+    fun publicPet(petId: String): String = "public_pet/$petId"
 }

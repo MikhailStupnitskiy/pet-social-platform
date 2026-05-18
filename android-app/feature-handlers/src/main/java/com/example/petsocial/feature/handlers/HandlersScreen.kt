@@ -1,5 +1,6 @@
 package com.example.petsocial.feature.handlers
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -51,11 +52,15 @@ import com.example.petsocial.core.ui.FullScreenLoading
 @Composable
 fun HandlersRoute(
     isHandler: Boolean = false,
+    onUserProfileClick: (String) -> Unit = {},
+    onPetProfileClick: (String) -> Unit = {},
     viewModel: HandlersViewModel = hiltViewModel()
 ) {
     HandlersRouteContent(
         isHandler = isHandler,
         profileOnly = false,
+        onUserProfileClick = onUserProfileClick,
+        onPetProfileClick = onPetProfileClick,
         onLogoutClick = null,
         viewModel = viewModel
     )
@@ -69,6 +74,8 @@ fun HandlerProfileRoute(
     HandlersRouteContent(
         isHandler = true,
         profileOnly = true,
+        onUserProfileClick = {},
+        onPetProfileClick = {},
         onLogoutClick = onLogoutClick,
         viewModel = viewModel
     )
@@ -78,6 +85,8 @@ fun HandlerProfileRoute(
 private fun HandlersRouteContent(
     isHandler: Boolean,
     profileOnly: Boolean,
+    onUserProfileClick: (String) -> Unit,
+    onPetProfileClick: (String) -> Unit,
     onLogoutClick: (() -> Unit)?,
     viewModel: HandlersViewModel
 ) {
@@ -91,6 +100,8 @@ private fun HandlersRouteContent(
         uiState = uiState,
         isHandler = isHandler,
         profileOnly = profileOnly,
+        onUserProfileClick = onUserProfileClick,
+        onPetProfileClick = onPetProfileClick,
         onLogoutClick = onLogoutClick,
         onTabSelected = viewModel::selectTab,
         onRetryClick = viewModel::load,
@@ -131,6 +142,8 @@ private fun HandlersScreen(
     uiState: HandlersUiState,
     isHandler: Boolean,
     profileOnly: Boolean,
+    onUserProfileClick: (String) -> Unit,
+    onPetProfileClick: (String) -> Unit,
     onLogoutClick: (() -> Unit)?,
     onTabSelected: (Int) -> Unit,
     onRetryClick: () -> Unit,
@@ -244,7 +257,12 @@ private fun HandlersScreen(
                     }
                 }
 
-                isHandler && effectiveTab == 0 -> handlerRequestsContent(uiState, onStatusClick)
+                isHandler && effectiveTab == 0 -> handlerRequestsContent(
+                    uiState = uiState,
+                    onStatusClick = onStatusClick,
+                    onUserProfileClick = onUserProfileClick,
+                    onPetProfileClick = onPetProfileClick
+                )
 
                 isHandler && effectiveTab == 1 -> handlerServicesContent(
                     uiState = uiState,
@@ -268,7 +286,8 @@ private fun HandlersScreen(
                     onRequestDateChanged = onRequestDateChanged,
                     onRequestTimeChanged = onRequestTimeChanged,
                     onRequestCommentChanged = onRequestCommentChanged,
-                    onCreateRequestClick = onCreateRequestClick
+                    onCreateRequestClick = onCreateRequestClick,
+                    onUserProfileClick = onUserProfileClick
                 )
 
                 !isHandler && effectiveTab == 1 -> requestsContent(
@@ -277,7 +296,9 @@ private fun HandlersScreen(
                     onStartReviewClick = onStartReviewClick,
                     onReviewRatingChanged = onReviewRatingChanged,
                     onReviewBodyChanged = onReviewBodyChanged,
-                    onSubmitReviewClick = onSubmitReviewClick
+                    onSubmitReviewClick = onSubmitReviewClick,
+                    onUserProfileClick = onUserProfileClick,
+                    onPetProfileClick = onPetProfileClick
                 )
             }
         }
@@ -294,7 +315,8 @@ private fun LazyListScope.searchContent(
     onRequestDateChanged: (String) -> Unit,
     onRequestTimeChanged: (String) -> Unit,
     onRequestCommentChanged: (String) -> Unit,
-    onCreateRequestClick: () -> Unit
+    onCreateRequestClick: () -> Unit,
+    onUserProfileClick: (String) -> Unit
 ) {
     item {
         SectionHeader(title = "Найти услугу")
@@ -361,7 +383,11 @@ private fun LazyListScope.searchContent(
         }
     } else {
         items(uiState.handlers, key = { it.user_id }) { profile ->
-            HandlerCard(profile = profile, onServiceSelected = onServiceSelected)
+            HandlerCard(
+                profile = profile,
+                onUserProfileClick = onUserProfileClick,
+                onServiceSelected = onServiceSelected
+            )
         }
     }
 }
@@ -372,7 +398,9 @@ private fun LazyListScope.requestsContent(
     onStartReviewClick: (ServiceRequestResponse) -> Unit,
     onReviewRatingChanged: (String) -> Unit,
     onReviewBodyChanged: (String) -> Unit,
-    onSubmitReviewClick: () -> Unit
+    onSubmitReviewClick: () -> Unit,
+    onUserProfileClick: (String) -> Unit,
+    onPetProfileClick: (String) -> Unit
 ) {
     item {
         SectionHeader(title = "Мои заявки")
@@ -392,7 +420,9 @@ private fun LazyListScope.requestsContent(
                 role = "client",
                 isSubmitting = uiState.isSubmitting,
                 onStatusClick = onStatusClick,
-                onStartReviewClick = onStartReviewClick
+                onStartReviewClick = onStartReviewClick,
+                onUserProfileClick = onUserProfileClick,
+                onPetProfileClick = onPetProfileClick
             )
         }
     }
@@ -460,7 +490,9 @@ private fun LazyListScope.handlerProfileContent(
 
 private fun LazyListScope.handlerRequestsContent(
     uiState: HandlersUiState,
-    onStatusClick: (String, String) -> Unit
+    onStatusClick: (String, String) -> Unit,
+    onUserProfileClick: (String) -> Unit,
+    onPetProfileClick: (String) -> Unit
 ) {
     item {
         SectionHeader(title = "Заявки на услуги")
@@ -483,7 +515,9 @@ private fun LazyListScope.handlerRequestsContent(
                 role = "handler",
                 isSubmitting = uiState.isSubmitting,
                 onStatusClick = onStatusClick,
-                onStartReviewClick = {}
+                onStartReviewClick = {},
+                onUserProfileClick = onUserProfileClick,
+                onPetProfileClick = onPetProfileClick
             )
         }
     }
@@ -546,9 +580,14 @@ private fun LazyListScope.handlerServicesContent(
 @Composable
 private fun HandlerCard(
     profile: HandlerProfileResponse,
+    onUserProfileClick: (String) -> Unit,
     onServiceSelected: (HandlerServiceResponse) -> Unit
 ) {
-    ProductCard(modifier = Modifier.fillMaxWidth()) {
+    ProductCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onUserProfileClick(profile.user_id) }
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -868,7 +907,9 @@ private fun RequestCard(
     role: String,
     isSubmitting: Boolean,
     onStatusClick: (String, String) -> Unit,
-    onStartReviewClick: (ServiceRequestResponse) -> Unit
+    onStartReviewClick: (ServiceRequestResponse) -> Unit,
+    onUserProfileClick: (String) -> Unit,
+    onPetProfileClick: (String) -> Unit
 ) {
     ProductCard(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -882,9 +923,21 @@ private fun RequestCard(
             }
             StatusChip(label = statusLabel(request.status), tone = statusTone(request.status))
         }
-        Text("Питомец: ${request.pet_name}")
-        Text("Клиент: ${request.client_name.ifBlank { request.client_user_id }}")
-        Text("Специалист: ${request.handler_name}")
+        Text(
+            text = "Питомец: ${request.pet_name}",
+            color = PetPrimary,
+            modifier = Modifier.clickable { onPetProfileClick(request.pet_id) }
+        )
+        Text(
+            text = "Клиент: ${request.client_name.ifBlank { request.client_user_id }}",
+            color = PetPrimary,
+            modifier = Modifier.clickable { onUserProfileClick(request.client_user_id) }
+        )
+        Text(
+            text = "Специалист: ${request.handler_name}",
+            color = PetPrimary,
+            modifier = Modifier.clickable { onUserProfileClick(request.handler_user_id) }
+        )
         request.comment?.takeIf { it.isNotBlank() }?.let { comment ->
             Text("Комментарий: $comment", color = PetTextSecondary)
         }

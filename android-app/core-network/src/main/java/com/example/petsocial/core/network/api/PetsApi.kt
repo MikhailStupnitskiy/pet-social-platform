@@ -2,6 +2,7 @@ package com.example.petsocial.core.network.api
 
 import com.example.petsocial.core.network.model.pets.CreatePetRequest
 import com.example.petsocial.core.network.model.pets.PetResponse
+import com.example.petsocial.core.network.model.pets.PublicPetProfileResponse
 import com.example.petsocial.core.network.model.pets.UpdatePetRequest
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -23,6 +24,11 @@ interface PetsApi {
     suspend fun getPetById(
         @Path("id") id: String
     ): PetResponse
+
+    @GET("v1/pets/public/{id}")
+    suspend fun getPublicPetById(
+        @Path("id") id: String
+    ): PublicPetProfileResponse
 
     @PATCH("v1/pets/{id}")
     suspend fun updatePet(

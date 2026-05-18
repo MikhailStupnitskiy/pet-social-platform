@@ -12,15 +12,25 @@ import javax.inject.Inject
 import com.example.petsocial.core.common.result.AppResult
 import com.example.petsocial.core.common.result.safeApiCall
 import com.example.petsocial.core.common.session.SessionEventBus
+import com.example.petsocial.core.datastore.auth.TokenStorage
 
 @HiltViewModel
 class ChatsViewModel @Inject constructor(
     private val repository: ChatRepository,
+    private val tokenStorage: TokenStorage,
     private val sessionEventBus: SessionEventBus
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatsUiState(isLoading = true))
     val uiState: StateFlow<ChatsUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            tokenStorage.token.collect { token ->
+                _uiState.value = _uiState.value.copy(authToken = token)
+            }
+        }
+    }
 
     private fun handleUnauthorized(error: AppError): Boolean {
         if (error is AppError.Unauthorized) {
@@ -51,7 +61,7 @@ class ChatsViewModel @Inject constructor(
                         return@launch
                     }
 
-                    _uiState.value = ChatsUiState(
+                    _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         errorMessage = result.error.message
                     )

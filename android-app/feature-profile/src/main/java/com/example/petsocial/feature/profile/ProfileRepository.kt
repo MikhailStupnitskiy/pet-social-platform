@@ -3,7 +3,9 @@ package com.example.petsocial.feature.profile
 import android.net.Uri
 import com.example.petsocial.core.network.model.profile.ProfileResponse
 import com.example.petsocial.core.network.model.profile.ProfileStatsResponse
+import com.example.petsocial.core.network.model.profile.PublicUserProfileResponse
 import com.example.petsocial.core.network.model.pets.PetResponse
+import com.example.petsocial.core.network.model.pets.PublicPetProfileResponse
 
 interface ProfileRepository {
 
@@ -12,6 +14,10 @@ interface ProfileRepository {
     suspend fun getStats(): ProfileStatsResponse
 
     suspend fun getPets(): List<PetResponse>
+
+    suspend fun getPublicProfile(userId: String): PublicUserProfileResponse
+
+    suspend fun getPublicPet(petId: String): PublicPetProfileResponse
 
     suspend fun updateMe(
         name: String,

@@ -23,8 +23,10 @@ import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.navArgument
 import com.example.petsocial.core.designsystem.theme.PetBackground
 import com.example.petsocial.core.designsystem.theme.PetPrimary
 import com.example.petsocial.core.designsystem.theme.PetPrimaryLight
@@ -39,6 +41,8 @@ import com.example.petsocial.feature.handlers.HandlerProfileRoute
 import com.example.petsocial.feature.handlers.HandlersRoute
 import com.example.petsocial.feature.matching.MatchingRoute
 import com.example.petsocial.feature.profile.ProfileRoute
+import com.example.petsocial.feature.profile.PublicPetProfileRoute
+import com.example.petsocial.feature.profile.PublicUserProfileRoute
 import com.example.petsocial.feature.routine.RoutineRoute
 
 fun NavGraphBuilder.mainGraph(
@@ -64,6 +68,30 @@ fun NavGraphBuilder.mainGraph(
             )
         }
     }
+
+    composable(
+        route = AppRoutes.PublicUser,
+        arguments = listOf(navArgument(AppRoutes.PublicUserArg) { type = NavType.StringType })
+    ) { entry ->
+        val userId = entry.arguments?.getString(AppRoutes.PublicUserArg).orEmpty()
+        PublicUserProfileRoute(
+            userId = userId,
+            onBack = { navController.popBackStack() },
+            onPetClick = { petId -> navController.navigate(AppRoutes.publicPet(petId)) }
+        )
+    }
+
+    composable(
+        route = AppRoutes.PublicPet,
+        arguments = listOf(navArgument(AppRoutes.PublicPetArg) { type = NavType.StringType })
+    ) { entry ->
+        val petId = entry.arguments?.getString(AppRoutes.PublicPetArg).orEmpty()
+        PublicPetProfileRoute(
+            petId = petId,
+            onBack = { navController.popBackStack() },
+            onOwnerClick = { userId -> navController.navigate(AppRoutes.publicUser(userId)) }
+        )
+    }
 }
 
 @Composable
@@ -81,7 +109,7 @@ private fun MainScaffold(
     Scaffold(
         containerColor = PetBackground,
         topBar = {
-            if (currentRoute != AppRoutes.Profile && currentRoute != AppRoutes.Feed) {
+            if (currentRoute != AppRoutes.Profile && currentRoute != AppRoutes.Feed && currentRoute != AppRoutes.Chats) {
                 PetSocialTopBar(title = titleForRoute(currentRoute, isHandler))
             }
         },
@@ -124,12 +152,26 @@ private fun MainScaffold(
                             launchSingleTop = true
                             restoreState = true
                         }
-                    }
+                    },
+                    onUserProfileClick = { userId -> navController.navigate(AppRoutes.publicUser(userId)) },
+                    onPetProfileClick = { petId -> navController.navigate(AppRoutes.publicPet(petId)) }
                 )
-                AppRoutes.Matching -> MatchingRoute()
-                AppRoutes.Chats -> ChatsRoute()
-                AppRoutes.Care -> CareRoute()
-                AppRoutes.Handlers -> HandlersRoute(isHandler = true)
+                AppRoutes.Matching -> MatchingRoute(
+                    onPetProfileClick = { petId -> navController.navigate(AppRoutes.publicPet(petId)) }
+                )
+                AppRoutes.Chats -> ChatsRoute(
+                    onUserProfileClick = { userId -> navController.navigate(AppRoutes.publicUser(userId)) },
+                    onPetProfileClick = { petId -> navController.navigate(AppRoutes.publicPet(petId)) }
+                )
+                AppRoutes.Care -> CareRoute(
+                    onUserProfileClick = { userId -> navController.navigate(AppRoutes.publicUser(userId)) },
+                    onPetProfileClick = { petId -> navController.navigate(AppRoutes.publicPet(petId)) }
+                )
+                AppRoutes.Handlers -> HandlersRoute(
+                    isHandler = true,
+                    onUserProfileClick = { userId -> navController.navigate(AppRoutes.publicUser(userId)) },
+                    onPetProfileClick = { petId -> navController.navigate(AppRoutes.publicPet(petId)) }
+                )
             }
         }
     }
@@ -148,7 +190,10 @@ private fun OwnerProfileRoute(
 }
 
 @Composable
-private fun CareRoute() {
+private fun CareRoute(
+    onUserProfileClick: (String) -> Unit,
+    onPetProfileClick: (String) -> Unit
+) {
     var selectedTab by rememberSaveable { mutableStateOf(0) }
     val tabs = listOf("Р СѓС‚РёРЅР°", "РЈСЃР»СѓРіРё")
 
@@ -157,7 +202,11 @@ private fun CareRoute() {
 
         when (selectedTab) {
             0 -> RoutineRoute()
-            1 -> HandlersRoute(isHandler = false)
+            1 -> HandlersRoute(
+                isHandler = false,
+                onUserProfileClick = onUserProfileClick,
+                onPetProfileClick = onPetProfileClick
+            )
         }
     }
 }
@@ -186,6 +235,10 @@ private fun ProductTabRow(
 }
 
 private fun titleForRoute(route: String?, isHandler: Boolean): String {
+    if (route == AppRoutes.Chats) {
+        return "\u0421\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u044f"
+    }
+
     return when (route) {
         AppRoutes.Profile -> "РџСЂРѕС„РёР»СЊ"
         AppRoutes.Feed -> "Р›РµРЅС‚Р°"

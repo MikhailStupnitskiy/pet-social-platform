@@ -88,6 +88,8 @@ fun FeedRoute(
     onProfileClick: () -> Unit,
     onMatchingClick: () -> Unit,
     onCareClick: () -> Unit,
+    onUserProfileClick: (String) -> Unit,
+    onPetProfileClick: (String) -> Unit,
     viewModel: FeedViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -101,6 +103,8 @@ fun FeedRoute(
         onProfileClick = onProfileClick,
         onMatchingClick = onMatchingClick,
         onCareClick = onCareClick,
+        onUserProfileClick = onUserProfileClick,
+        onPetProfileClick = onPetProfileClick,
         onBodyChanged = viewModel::onBodyChanged,
         onImageSelected = viewModel::onImageSelected,
         onClearSelectedImage = viewModel::clearSelectedImage,
@@ -138,6 +142,8 @@ private fun FeedScreen(
     onProfileClick: () -> Unit,
     onMatchingClick: () -> Unit,
     onCareClick: () -> Unit,
+    onUserProfileClick: (String) -> Unit,
+    onPetProfileClick: (String) -> Unit,
     onBodyChanged: (String) -> Unit,
     onImageSelected: (android.net.Uri?) -> Unit,
     onClearSelectedImage: () -> Unit,
@@ -240,7 +246,9 @@ private fun FeedScreen(
                     authToken = uiState.authToken,
                     isReacting = post.id in uiState.reactingPostIds,
                     isDeleting = post.id in uiState.deletingPostIds,
-                    onPostClick = { onOpenPostProfile(post.id) },
+                    onPostClick = { onPetProfileClick(post.pet_id) },
+                    onAuthorClick = { onUserProfileClick(post.author_user_id) },
+                    onPetClick = { onPetProfileClick(post.pet_id) },
                     onEditPostClick = { onStartEditPost(post) },
                     onDeletePostClick = { onDeletePost(post.id) },
                     onCommentsClick = { onOpenCommentsClick(post.id) },
@@ -312,7 +320,8 @@ private fun FeedScreen(
                 onEditingCommentChanged = onEditingCommentChanged,
                 onCancelEditComment = onCancelEditComment,
                 onSaveComment = { commentId -> onSaveComment(commentsPost.id, commentId) },
-                onDeleteComment = { commentId -> onDeleteComment(commentsPost.id, commentId) }
+                onDeleteComment = { commentId -> onDeleteComment(commentsPost.id, commentId) },
+                onAuthorClick = onUserProfileClick
             )
         }
     }
@@ -552,6 +561,8 @@ private fun FeedPostCard(
     isReacting: Boolean,
     isDeleting: Boolean,
     onPostClick: () -> Unit,
+    onAuthorClick: () -> Unit,
+    onPetClick: () -> Unit,
     onEditPostClick: () -> Unit,
     onDeletePostClick: () -> Unit,
     onCommentsClick: () -> Unit,
@@ -569,9 +580,19 @@ private fun FeedPostCard(
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            PetAvatar(post.pet_photo_url, authToken, post.pet_name, size = 44.dp)
+            PetAvatar(
+                post.pet_photo_url,
+                authToken,
+                post.pet_name,
+                modifier = Modifier.clickable(onClick = onPetClick),
+                size = 44.dp
+            )
             Spacer(modifier = Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = onAuthorClick)
+            ) {
                 Text(postTitle(post), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Text(postTime(post.created_at), style = MaterialTheme.typography.bodySmall, color = PetTextSecondary)
             }
@@ -767,7 +788,8 @@ private fun CommentsSheet(
     onEditingCommentChanged: (String) -> Unit,
     onCancelEditComment: () -> Unit,
     onSaveComment: (String) -> Unit,
-    onDeleteComment: (String) -> Unit
+    onDeleteComment: (String) -> Unit,
+    onAuthorClick: (String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -800,7 +822,8 @@ private fun CommentsSheet(
                     onEditingCommentChanged = onEditingCommentChanged,
                     onCancelEditComment = onCancelEditComment,
                     onSaveComment = onSaveComment,
-                    onDeleteComment = onDeleteComment
+                    onDeleteComment = onDeleteComment,
+                    onAuthorClick = onAuthorClick
                 )
             }
         }
@@ -842,7 +865,8 @@ private fun CommentRow(
     onEditingCommentChanged: (String) -> Unit,
     onCancelEditComment: () -> Unit,
     onSaveComment: (String) -> Unit,
-    onDeleteComment: (String) -> Unit
+    onDeleteComment: (String) -> Unit,
+    onAuthorClick: (String) -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -853,7 +877,13 @@ private fun CommentRow(
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(7.dp)
         ) {
-            Text(comment.author_name.ifBlank { "Владелец питомца" }, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = comment.author_name.ifBlank { "Владелец питомца" },
+                modifier = Modifier.clickable { onAuthorClick(comment.author_user_id) },
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = PetPrimary
+            )
             if (isEditing) {
                 OutlinedTextField(
                     value = editingCommentBody,

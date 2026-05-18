@@ -1,6 +1,7 @@
 package com.example.petsocial.feature.matching
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,6 +60,7 @@ import com.example.petsocial.core.ui.SuccessMessage
 
 @Composable
 fun MatchingRoute(
+    onPetProfileClick: (String) -> Unit,
     viewModel: MatchingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -71,7 +73,8 @@ fun MatchingRoute(
         uiState = uiState,
         onLikeClick = viewModel::like,
         onPassClick = viewModel::pass,
-        onRetryClick = viewModel::load
+        onRetryClick = viewModel::load,
+        onPetProfileClick = onPetProfileClick
     )
 }
 
@@ -80,7 +83,8 @@ private fun MatchingScreen(
     uiState: MatchingUiState,
     onLikeClick: (String) -> Unit,
     onPassClick: (String) -> Unit,
-    onRetryClick: () -> Unit
+    onRetryClick: () -> Unit,
+    onPetProfileClick: (String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -174,6 +178,7 @@ private fun MatchingScreen(
                 RecommendationCard(
                     recommendation = recommendation,
                     isActionLoading = uiState.isActionLoading,
+                    onOpenClick = { onPetProfileClick(recommendation.id) },
                     onLikeClick = { onLikeClick(recommendation.id) },
                     onPassClick = { onPassClick(recommendation.id) }
                 )
@@ -183,7 +188,11 @@ private fun MatchingScreen(
         if (uiState.matches.isNotEmpty()) {
             item { SectionHeader(title = "Ваши мэтчи") }
             items(uiState.matches) { match ->
-                MatchCard(match = match)
+                MatchCard(
+                    match = match,
+                    activePetId = uiState.activePet?.id,
+                    onPetProfileClick = onPetProfileClick
+                )
             }
         }
 
@@ -217,11 +226,14 @@ private fun ActivePetBlock(pet: PetResponse) {
 private fun RecommendationCard(
     recommendation: RecommendationResponse,
     isActionLoading: Boolean,
+    onOpenClick: () -> Unit,
     onLikeClick: () -> Unit,
     onPassClick: () -> Unit
 ) {
     ProductCard(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpenClick),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
     ) {
         Box(
@@ -312,7 +324,7 @@ private fun RecommendationCard(
             }
             Spacer(modifier = Modifier.size(18.dp))
             FilledIconButton(
-                onClick = { },
+                onClick = onOpenClick,
                 modifier = Modifier.size(52.dp),
                 colors = IconButtonDefaults.filledIconButtonColors(
                     containerColor = PetSurface,
@@ -340,8 +352,17 @@ private fun RecommendationCard(
 }
 
 @Composable
-private fun MatchCard(match: MatchResponse) {
-    ProductCard(modifier = Modifier.fillMaxWidth()) {
+private fun MatchCard(
+    match: MatchResponse,
+    activePetId: String?,
+    onPetProfileClick: (String) -> Unit
+) {
+    val peerPetId = if (match.pet1_id == activePetId) match.pet2_id else match.pet1_id
+    ProductCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onPetProfileClick(peerPetId) }
+    ) {
         Text(text = "Это мэтч!", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         Text(text = "Чат создан: ${match.created_at.take(10)}", color = PetTextSecondary)
     }
