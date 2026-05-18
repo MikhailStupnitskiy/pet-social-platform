@@ -258,6 +258,29 @@ func (r *Repository) Update(ctx context.Context, pet domain.Pet) (*domain.Pet, e
 	return &pet, nil
 }
 
+func (r *Repository) UpdateLocation(ctx context.Context, petID string, ownerID string, latitude string, longitude string) (*domain.Pet, error) {
+	const query = `
+		UPDATE pets
+		SET
+			latitude = $3,
+			longitude = $4,
+			updated_at = NOW()
+		WHERE id = $1 AND owner_id = $2
+		RETURNING ` + petColumns + `
+	`
+
+	var pet domain.Pet
+	err := r.db.QueryRow(ctx, query, petID, ownerID, latitude, longitude).Scan(scanPetDest(&pet)...)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.ErrPetNotFound
+		}
+		return nil, err
+	}
+
+	return &pet, nil
+}
+
 func (r *Repository) SetActive(ctx context.Context, petID string, ownerID string) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {

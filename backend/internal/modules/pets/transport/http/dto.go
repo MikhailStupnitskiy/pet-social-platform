@@ -36,6 +36,11 @@ type UpdatePetRequest struct {
 	Longitude          *string  `json:"longitude"`
 }
 
+type UpdatePetLocationRequest struct {
+	Latitude  string `json:"latitude"`
+	Longitude string `json:"longitude"`
+}
+
 type PetResponse struct {
 	ID                 string   `json:"id"`
 	OwnerID            string   `json:"owner_id"`

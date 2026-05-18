@@ -157,6 +157,7 @@ func New(deps Dependencies) http.Handler {
 		r.Get("/public/{id}", petsHandler.GetPublicByID)
 		r.Get("/{id}", petsHandler.GetByID)
 		r.Patch("/{id}", petsHandler.Patch)
+		r.Patch("/{id}/location", petsHandler.PatchLocation)
 		r.Post("/{id}/set-active", petsHandler.SetActive)
 	})
 
@@ -165,6 +166,7 @@ func New(deps Dependencies) http.Handler {
 
 		r.Get("/recommendations", matchingHandler.Recommendations)
 		r.Post("/swipes", matchingHandler.Swipe)
+		r.Post("/events", matchingHandler.Event)
 		r.Get("/matches", matchingHandler.Matches)
 	})
 

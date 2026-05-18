@@ -40,6 +40,10 @@ func (s *Service) UpdateMyPet(
 	return s.repo.Update(ctx, pet)
 }
 
+func (s *Service) UpdatePetLocation(ctx context.Context, petID string, ownerID string, latitude string, longitude string) (*domain.Pet, error) {
+	return s.repo.UpdateLocation(ctx, petID, ownerID, latitude, longitude)
+}
+
 func (s *Service) SetActivePet(ctx context.Context, petID string, ownerID string) error {
 	return s.repo.SetActive(ctx, petID, ownerID)
 }

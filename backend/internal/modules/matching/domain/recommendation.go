@@ -21,7 +21,30 @@ type Recommendation struct {
 	Latitude           *string
 	Longitude          *string
 	DistanceMeters     *int
+	CompatibilityScore int
+	ScoreReasons       []string
+	Goal               string
+	BehaviorScore      int
 	IsActive           bool
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
+}
+
+type RecommendationFilters struct {
+	Goal              string
+	MaxDistanceMeters *int
+	Species           *string
+	Breed             *string
+	Sex               *string
+	AgeMinMonths      *int
+	AgeMaxMonths      *int
+	Tags              []string
+	Interests         []string
+	HasPhoto          *bool
+}
+
+type MatchingEvent struct {
+	SourcePetID string
+	TargetPetID string
+	EventType   string
 }

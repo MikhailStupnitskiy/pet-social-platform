@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -174,6 +175,49 @@ func (h *Handler) Patch(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, toPetResponse(pet))
 }
 
+func (h *Handler) PatchLocation(w http.ResponseWriter, r *http.Request) {
+	ownerID, ok := authhttp.UserIDFromContext(r.Context())
+	if !ok || ownerID == "" {
+		response.Unauthorized(w, "unauthorized")
+		return
+	}
+
+	petID := strings.TrimSpace(chi.URLParam(r, "id"))
+	if petID == "" {
+		response.BadRequest(w, "pet id is required")
+		return
+	}
+
+	var req UpdatePetLocationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.BadRequest(w, "invalid request body")
+		return
+	}
+
+	latitude := strings.TrimSpace(req.Latitude)
+	longitude := strings.TrimSpace(req.Longitude)
+	if !isValidCoordinate(latitude, -90, 90) {
+		response.BadRequest(w, "latitude must be between -90 and 90")
+		return
+	}
+	if !isValidCoordinate(longitude, -180, 180) {
+		response.BadRequest(w, "longitude must be between -180 and 180")
+		return
+	}
+
+	pet, err := h.service.UpdatePetLocation(r.Context(), petID, ownerID, latitude, longitude)
+	if err != nil {
+		if errors.Is(err, domain.ErrPetNotFound) {
+			response.NotFound(w, "pet not found")
+			return
+		}
+		response.InternalServerError(w)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, toPetResponse(pet))
+}
+
 func (h *Handler) SetActive(w http.ResponseWriter, r *http.Request) {
 	ownerID, ok := authhttp.UserIDFromContext(r.Context())
 	if !ok || ownerID == "" {
@@ -279,7 +323,7 @@ func petFromCreateRequest(ownerID string, name string, species string, req Creat
 		PersonalityTags:    cleanList(req.PersonalityTags),
 		Interests:          cleanList(req.Interests),
 		HealthNotes:        trimPtr(req.HealthNotes),
-		MatchingGoal:       trimPtr(req.MatchingGoal),
+		MatchingGoal:       normalizeMatchingGoalPtr(req.MatchingGoal),
 		SearchRadiusMeters: radiusOrDefault(req.SearchRadiusMeters),
 		Latitude:           trimPtr(req.Latitude),
 		Longitude:          trimPtr(req.Longitude),
@@ -338,4 +382,28 @@ func trimPtr(value *string) *string {
 	}
 	trimmed := strings.TrimSpace(*value)
 	return &trimmed
+}
+
+func normalizeMatchingGoalPtr(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	switch strings.ToLower(strings.TrimSpace(*value)) {
+	case "walk", "walking", "прогулка", "прогулки":
+		normalized := "walk"
+		return &normalized
+	case "breeding", "breed", "разведение":
+		normalized := "breeding"
+		return &normalized
+	default:
+		return nil
+	}
+}
+
+func isValidCoordinate(value string, min float64, max float64) bool {
+	parsed, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		return false
+	}
+	return parsed >= min && parsed <= max
 }

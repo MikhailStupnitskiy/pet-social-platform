@@ -50,6 +50,10 @@ func (f *fakeRepository) Update(context.Context, domain.Pet) (*domain.Pet, error
 	return &domain.Pet{}, nil
 }
 
+func (f *fakeRepository) UpdateLocation(context.Context, string, string, string, string) (*domain.Pet, error) {
+	return &domain.Pet{}, nil
+}
+
 func (f *fakeRepository) SetActive(context.Context, string, string) error {
 	return nil
 }

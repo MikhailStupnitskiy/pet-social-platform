@@ -8,5 +8,6 @@ type Repository interface {
 	GetByIDAndOwnerID(ctx context.Context, petID string, ownerID string) (*Pet, error)
 	GetPublicByID(ctx context.Context, petID string) (*PublicPetProfile, error)
 	Update(ctx context.Context, pet Pet) (*Pet, error)
+	UpdateLocation(ctx context.Context, petID string, ownerID string, latitude string, longitude string) (*Pet, error)
 	SetActive(ctx context.Context, petID string, ownerID string) error
 }
